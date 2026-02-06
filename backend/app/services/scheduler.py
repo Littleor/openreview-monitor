@@ -127,6 +127,42 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
         decision = status_info.get("decision")
         has_decision = status_info.get("has_decision", False)
 
+        # Check for modified reviews
+        stored_reviews_data = paper.review_data or {}
+        stored_reviews = stored_reviews_data.get("reviews", [])
+        stored_reviews_map = {r["id"]: r for r in stored_reviews}
+        
+        modified_reviews = []
+        for review in reviews:
+            rid = review["id"]
+            if rid in stored_reviews_map:
+                stored_review = stored_reviews_map[rid]
+                stored_mdate = stored_review.get("mdate")
+                new_mdate = review.get("mdate")
+                
+                # Check for modification (both must have mdate, and they must differ)
+                if stored_mdate and new_mdate and stored_mdate != new_mdate:
+                    logger.info(f"Detected modification for review {rid}: {stored_mdate} -> {new_mdate}")
+                    modified_reviews.append(review)
+
+        if modified_reviews:
+            # Notify subscribers about modifications
+            subscribers = db.query(Subscriber).filter(
+                Subscriber.paper_id == paper.id,
+                Subscriber.notify_on_review == True
+            ).all()
+
+            for sub in subscribers:
+                # Use a specific flag or logic to avoid spamming? 
+                # For now, we notify on every detected change cycle.
+                email_service.send_review_modified_notification(
+                    to_email=sub.email,
+                    paper_title=paper.title,
+                    paper_id=paper.openreview_id,
+                    venue=paper.venue,
+                    modified_reviews=modified_reviews,
+                )
+
         # Update paper info
         paper.last_checked = datetime.utcnow()
         paper.review_data = {"reviews": reviews, "review_count": len(reviews)}

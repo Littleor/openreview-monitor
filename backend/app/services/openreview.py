@@ -148,6 +148,7 @@ class OpenReviewService:
                     "soundness": None,
                     "presentation": None,
                     "contribution": None,
+                    "mdate": note.mdate if hasattr(note, 'mdate') else None,
                 }
 
                 if isinstance(content, dict):
@@ -209,9 +210,11 @@ class OpenReviewService:
                             decision_data["comment"] = val
                             break
 
-                if decision_data["decision"]:
-                    logger.info(f"Found decision for paper {paper_id}: {decision_data['decision']}")
-                    return decision_data
+            if decision_data["decision"]:
+                if hasattr(note, 'mdate'):
+                    decision_data["mdate"] = note.mdate
+                logger.info(f"Found decision for paper {paper_id}: {decision_data['decision']}")
+                return decision_data
 
             return None
 
