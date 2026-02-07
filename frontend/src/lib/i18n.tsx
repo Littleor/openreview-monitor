@@ -452,6 +452,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [locale])
 
+  const t = useCallback(
+    (key: TranslationKey, vars?: Record<string, string | number>) => {
+      const template = translations[locale][key] ?? translations.en[key] ?? String(key)
+      return interpolate(template, vars)
+    },
+    [locale],
+  )
+
   useEffect(() => {
     if (typeof document === 'undefined') return
 
@@ -471,14 +479,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setMeta('meta[name="twitter:title"]', t('seo.twitterTitle'))
     setMeta('meta[name="twitter:description"]', t('seo.twitterDescription'))
   }, [locale, t])
-
-  const t = useCallback(
-    (key: TranslationKey, vars?: Record<string, string | number>) => {
-      const template = translations[locale][key] ?? translations.en[key] ?? String(key)
-      return interpolate(template, vars)
-    },
-    [locale],
-  )
 
   const formatDateTime = useCallback(
     (value: string | number | Date) => {
