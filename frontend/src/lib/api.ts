@@ -165,11 +165,6 @@ export const api = {
   getPublicEmailConfig: () =>
     fetchApi<PublicEmailConfig>('/public/email-config'),
 
-  getPaperStatus: (paperId: number) =>
-    fetchApi<{ id: number; title: string; status: string; venue: string }>(
-      `/papers/${paperId}/status`
-    ),
-
   // Admin APIs
   login: (password: string) =>
     fetchApi<{ token: string; token_type: string }>('/admin/login', {

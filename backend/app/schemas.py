@@ -60,13 +60,6 @@ class PaperResponse(BaseModel):
         from_attributes = True
 
 
-class PaperStatusResponse(BaseModel):
-    id: int
-    title: Optional[str]
-    status: str
-    venue: Optional[str]
-
-
 class PaperUpdate(BaseModel):
     title: Optional[str] = None
     venue: Optional[str] = None

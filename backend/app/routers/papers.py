@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from ..database import get_db
 from ..models import Paper, Subscriber, EmailVerification
 from ..schemas import (
-    PaperCreate, PaperResponse, PaperStatusResponse, MessageResponse,
+    PaperCreate, PaperResponse, MessageResponse,
     PaperPreview, PaperPreviewRequest, EmailVerificationRequest, EmailVerificationResponse
 )
 from ..services.openreview import OpenReviewService
@@ -310,22 +310,3 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         success=True
     )
 
-
-@router.get("/{paper_id}/status", response_model=PaperStatusResponse)
-async def get_paper_status(
-    paper_id: int,
-    db: Session = Depends(get_db),
-    _: bool = Depends(get_current_admin)
-):
-    """Get the current status of a paper."""
-    paper = db.query(Paper).filter(Paper.id == paper_id).first()
-
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
-
-    return PaperStatusResponse(
-        id=paper.id,
-        title=paper.title,
-        status=paper.status,
-        venue=paper.venue
-    )
