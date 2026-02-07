@@ -4,11 +4,12 @@ import { PaperForm } from '@/components/PaperForm'
 import { BackendSelector } from '@/components/BackendSelector'
 import { Button } from '@/components/ui/button'
 import { getApiConfig } from '@/lib/apiBase'
-import { Settings, X } from 'lucide-react'
+import { Github, Settings, X } from 'lucide-react'
 
 export default function Home() {
   const [showBackendSettings, setShowBackendSettings] = useState(false)
   const [apiInfo, setApiInfo] = useState<{ mode: string; base: string } | null>(null)
+  const githubUrl = 'https://github.com/Littleor/openreview-monitor'
 
   useEffect(() => {
     setApiInfo(getApiConfig())
@@ -34,6 +35,17 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="rounded-full border-white/70 bg-white/70 text-xs"
+              >
+                <a href={githubUrl} target="_blank" rel="noreferrer">
+                  <Github className="mr-2 h-4 w-4" />
+                  GitHub
+                </a>
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 className="rounded-full border-white/70 bg-white/70 text-xs text-muted-foreground"
@@ -57,21 +69,22 @@ export default function Home() {
         <main className="relative z-10 container mx-auto px-4 py-12">
           <section className="mx-auto max-w-4xl text-center space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              OpenReview status radar
+              Always-on OpenReview monitoring
             </div>
             <div className="space-y-4">
               <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
                 Know the moment reviews land.
               </h2>
               <p className="text-lg text-muted-foreground">
-                Track OpenReview submissions, collect review updates, and get email alerts the
-                second a decision drops.
+                OpenReview Monitor tracks submissions 24/7, delivers instant review and decision
+                alerts, and stays transparent with open-source, self-hostable code.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">No browser extension</span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">24/7 monitoring</span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Open-source &amp; auditable</span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Self-hostable security</span>
               <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Review and decision alerts</span>
-              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Works with private papers</span>
             </div>
           </section>
 
@@ -79,11 +92,17 @@ export default function Home() {
             <PaperForm />
           </section>
 
-          <section className="mt-12 grid gap-4 sm:grid-cols-2">
+          <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
-              <h3 className="font-display text-lg">Smarter checking</h3>
+              <h3 className="font-display text-lg">Always-on monitoring</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                We check when conferences usually release results, so you get alerts without spam.
+                We keep a 24/7 schedule tuned to conference timelines, so you get fast alerts without spam.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
+              <h3 className="font-display text-lg">Open-source &amp; secure</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Audit the code, self-host the backend, and keep credentials under your control.
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
@@ -123,8 +142,8 @@ export default function Home() {
               <h3 className="font-display text-lg">Credentials are optional</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 Some conferences require login to view reviews or decisions. If you provide credentials,
-                we only use them to fetch paper status. Use at your own risk. For stronger security,
-                self-host the backend service.
+                we only use them to fetch paper status. For stronger security and control, self-host the
+                open-source backend.
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
