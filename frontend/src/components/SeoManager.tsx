@@ -56,7 +56,7 @@ export function SeoManager() {
     if (langParam && langParam !== locale) {
       setLocale(langParam)
     }
-  }, [location.search, locale, setLocale])
+  }, [location.search, setLocale])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
