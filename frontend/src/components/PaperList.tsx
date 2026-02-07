@@ -171,7 +171,7 @@ export function PaperList({ onRefresh }: PaperListProps) {
                             {getStatusLabel(paper.status)}
                           </span>
                           <span className="text-muted-foreground">
-                            {t('paperList.subscriberCount', { count: paper.subscriber_count })}
+                            {t('paperList.subscriberCount', { count: paper.subscriber_count ?? 0 })}
                           </span>
 
                           {/* Notification status indicators */}
