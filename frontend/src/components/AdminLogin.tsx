@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { api } from '@/lib/api'
+import { setAdminToken } from '@/lib/adminToken'
 import { useI18n } from '@/lib/i18n'
 import { Loader2, Lock } from 'lucide-react'
 
@@ -31,7 +32,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         variant: 'destructive',
       })
     } else if (result.data?.token) {
-      localStorage.setItem('admin_token', result.data.token)
+      setAdminToken(result.data.token)
       toast({
         title: t('common.success'),
         description: t('adminLogin.toast.success'),

@@ -1,4 +1,5 @@
 import { buildApiUrl, getApiBase } from './apiBase'
+import { getAdminToken } from './adminToken'
 
 interface ApiResponse<T> {
   data?: T;
@@ -11,7 +12,7 @@ async function fetchApi<T>(
   timeoutMs: number = 60000  // Default 60 second timeout
 ): Promise<ApiResponse<T>> {
   try {
-    const token = localStorage.getItem('admin_token');
+    const token = getAdminToken();
     const headers = new Headers(options.headers);
     if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');

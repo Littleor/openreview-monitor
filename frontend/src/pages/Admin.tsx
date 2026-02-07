@@ -10,6 +10,7 @@ import { AdminLogin } from '@/components/AdminLogin'
 import { PaperList } from '@/components/PaperList'
 import { LanguageSwitch } from '@/components/LanguageSwitch'
 import { api, Subscriber, ConfigUpdate } from '@/lib/api'
+import { clearAdminToken, getAdminToken } from '@/lib/adminToken'
 import { getApiConfig } from '@/lib/apiBase'
 import { useI18n } from '@/lib/i18n'
 import { Home, LogOut, Trash2, Save, Loader2, Mail, MailCheck, Bell, RotateCcw } from 'lucide-react'
@@ -26,7 +27,7 @@ export default function Admin() {
   const { t } = useI18n()
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
+    const token = getAdminToken()
     if (token) {
       setIsLoggedIn(true)
       loadData()
@@ -56,7 +57,7 @@ export default function Admin() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token')
+    clearAdminToken()
     setIsLoggedIn(false)
   }
 

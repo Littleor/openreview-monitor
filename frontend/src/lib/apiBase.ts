@@ -1,3 +1,5 @@
+import { clearAdminToken } from './adminToken'
+
 export type ApiMode = 'official' | 'custom'
 
 const STORAGE_KEYS = {
@@ -45,7 +47,7 @@ const persistBase = (base: string) => {
   if (!isBrowser) return
   const lastBase = localStorage.getItem(STORAGE_KEYS.lastBase)
   if (lastBase && lastBase !== base) {
-    localStorage.removeItem('admin_token')
+    clearAdminToken()
   }
   localStorage.setItem(STORAGE_KEYS.lastBase, base)
 }
