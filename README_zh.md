@@ -12,8 +12,10 @@ OpenReview Monitor 用于监控指定论文的评审动态与录用结果：当�
 
 ## 截图
 <p align="center">
-  <img alt="主页" src="assets/screenshot-homepage.png" width="48%" />
-  <img alt="管理后台" src="assets/screenshot-admin-panel.png" width="48%" />
+  <img alt="主页" src="assets/screenshot-homepage.png" width="80%" />
+</p>
+<p align="center">
+  <img alt="管理后台" src="assets/screenshot-admin-panel.png" width="80%" />
 </p>
 
 ## 功能亮点
