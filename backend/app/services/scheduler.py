@@ -8,6 +8,7 @@ from ..models import Paper, Subscriber, Config
 from .openreview import OpenReviewService
 from .email import EmailService
 from ..config import get_settings
+from ..utils.crypto import decrypt_value
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def get_email_service() -> EmailService:
             smtp_host=get_config_value("smtp_host", settings.smtp_host),
             smtp_port=int(get_config_value("smtp_port", str(settings.smtp_port))),
             smtp_user=get_config_value("smtp_user", settings.smtp_user),
-            smtp_password=get_config_value("smtp_password", settings.smtp_password),
+            smtp_password=decrypt_value(get_config_value("smtp_password", settings.smtp_password)),
             from_email=get_config_value("from_email", settings.from_email),
             from_name=from_name,
         )
@@ -122,8 +123,8 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
 
         # Create service with credentials if available
         service = OpenReviewService(
-            username=paper.openreview_username,
-            password=paper.openreview_password
+            username=decrypt_value(paper.openreview_username),
+            password=decrypt_value(paper.openreview_password)
         )
 
         # Get current status from OpenReview

@@ -11,6 +11,7 @@ from ..schemas import (
     ConfigResponse, ConfigUpdate, MessageResponse, TestEmailRequest
 )
 from ..utils.auth import verify_admin_password, create_access_token, get_current_admin
+from ..utils.crypto import encrypt_value
 from ..utils.rate_limit import RateLimiter
 from ..services.scheduler import get_email_service
 from ..config import get_settings
@@ -210,7 +211,7 @@ async def update_config(
     if config_data.smtp_user is not None:
         set_config_value("smtp_user", config_data.smtp_user)
     if config_data.smtp_password is not None:
-        set_config_value("smtp_password", config_data.smtp_password)
+        set_config_value("smtp_password", encrypt_value(config_data.smtp_password))
     if config_data.from_email is not None:
         set_config_value("from_email", config_data.from_email)
     if config_data.from_name is not None:

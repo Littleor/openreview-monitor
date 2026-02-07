@@ -16,6 +16,7 @@ from ..schemas import (
 from ..services.openreview import OpenReviewService
 from ..services.scheduler import get_email_service
 from ..config import get_settings
+from ..utils.crypto import encrypt_value
 
 router = APIRouter(prefix="/api/papers", tags=["papers"])
 settings = get_settings()
@@ -259,8 +260,8 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         submission_number=paper_data.submission_number,
         title=paper_data.title,
         venue=paper_data.venue,
-        openreview_username=paper_data.openreview_username,
-        openreview_password=paper_data.openreview_password,
+        openreview_username=encrypt_value(paper_data.openreview_username),
+        openreview_password=encrypt_value(paper_data.openreview_password),
         status="pending"
     )
     db.add(paper)
