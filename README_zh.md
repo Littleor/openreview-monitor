@@ -173,7 +173,7 @@ A: 本仓库在 `frontend/vite.config.ts` 里把 Vite 开发端口固定为 3000
 A: 请检查 `.env` 中的 SMTP 配置是否正确。如果是 Gmail，通常需要开启二步验证并生成“应用专用密码”填入 `SMTP_PASSWORD`，而不是使用你的登录密码。
 
 **Q: 如何部署到服务器？**
-A: 前端建议使用 `npm run build` 打包后通过 Nginx 托管；后端建议使用 Docker 或 Supervisor 保持后台运行。
+A: 后端部署详见 `docs/backend_deploy.md`。前端可使用 `npm run build` 打包后通过 Nginx 托管。
 
 ## 许可证
 
