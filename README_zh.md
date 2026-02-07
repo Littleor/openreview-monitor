@@ -48,7 +48,7 @@ openreview-monitor/
 └── README.md
 ```
 
-## 快速开始
+## 本地开发
 
 ### 前置要求
 - Python 3.10+
@@ -56,7 +56,7 @@ openreview-monitor/
 - `uv` (推荐使用的 Python 包管理器，也可使用 pip)
 - `npm` 或 `pnpm` (Node.js 包管理器)
 
-### 1. 后端设置
+### 1. 后端（开发）
 
 进入后端目录并配置环境：
 
@@ -89,7 +89,7 @@ uv run python -m app.server --reload
 uv run python -m app.server --host 0.0.0.0 --port 8001 --db-path ./data/monitor.db
 ```
 
-### 2. 前端设置
+### 2. 前端（开发）
 
 进入前端目录并启动：
 
@@ -105,7 +105,7 @@ npm install
 # 启动开发服务器
 npm run dev
 ```
-前端界面将在 `http://localhost:5173` (或 `http://localhost:3000`) 启动，请查看终端输出。
+前端界面默认在 `http://localhost:3000` 启动（本仓库已在 `frontend/vite.config.ts` 固定了端口）。
 
 可选前端环境变量：
 - `VITE_OFFICIAL_API_BASE_URL`：官方后端地址，若未包含 `/api` 会自动补全。
@@ -128,13 +128,17 @@ npm run dev
 前端支持在官方后端与自建后端之间切换，方便用户自行部署后端。
 
 **跨域提醒（重要）：**
-如果使用自建后端，请确保后端 CORS 允许当前前端域名。本地开发请加入 `http://localhost:3000` 和 `http://localhost:5173`。
+如果使用自建后端，请确保后端 CORS 允许当前前端域名。本地开发默认是 `http://localhost:3000`；如果你改成 5173 或其他端口，也要加进去。
+
+## 部署
+
+自建后端部署（环境变量、启动方式、以及如何让前端切换到自建后端）请见 `docs/backend_deploy.md`。
 
 ### 管理后台
 
 管理员可以通过后台管理所有数据。
 
-1. **访问地址**: 在浏览器访问 `/admin` 路径（例如 `http://localhost:5173/admin`）。
+1. **访问地址**: 在浏览器访问 `/admin` 路径（例如 `http://localhost:3000/admin`）。
 2. **登录**: 输入 `.env` 中配置的 `ADMIN_PASSWORD`（默认为 `admin`）。
 3. **功能模块**:
    - **Papers**: 查看所有正在监控的论文列表，支持手动删除不再关注的论文。
@@ -161,6 +165,9 @@ npm run dev
 | `APP_PORT` | 后端端口（`python -m app.server` 使用） | `8000` | |
 
 ## 常见问题
+
+**Q: 为什么会看到 3000 和 5173 两个端口？不是应该只有一个吗？**  
+A: 本仓库在 `frontend/vite.config.ts` 里把 Vite 开发端口固定为 3000。5173 是 Vite 的默认端口，只有在你移除或修改端口配置时才会出现。
 
 **Q: 为什么收不到邮件？**
 A: 请检查 `.env` 中的 SMTP 配置是否正确。如果是 Gmail，通常需要开启二步验证并生成“应用专用密码”填入 `SMTP_PASSWORD`，而不是使用你的登录密码。

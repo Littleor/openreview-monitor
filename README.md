@@ -46,7 +46,7 @@ openreview-monitor/
 └── README.md
 ```
 
-## Getting Started
+## Local Development
 
 ### Prerequisites
 - Python 3.10+
@@ -54,7 +54,7 @@ openreview-monitor/
 - `uv` (Python package manager)
 - `npm` or `pnpm`
 
-### 1. Backend Setup
+### 1. Backend (Dev)
 
 ```bash
 cd backend
@@ -70,14 +70,14 @@ Optional startup flags:
 uv run python -m app.server --host 0.0.0.0 --port 8001 --db-path ./data/monitor.db
 ```
 
-### 2. Frontend Setup
+### 2. Frontend (Dev)
 
 ```bash
 cd frontend
 pnpm install  # or npm install
 npm run dev
 ```
-UI runs at `http://localhost:3000` (or `http://localhost:5173` if you change the port).
+UI runs at `http://localhost:3000` (this repo pins Vite to port 3000 in `frontend/vite.config.ts`).
 
 Optional frontend env:
 - `VITE_OFFICIAL_API_BASE_URL`: The official backend base URL. The UI will append `/api` if missing.
@@ -96,11 +96,15 @@ Optional frontend env:
 The frontend lets users switch between the official backend and a custom deployment. This is useful for users who prefer to self-host.
 
 **CORS reminder (important):**
-If you use a custom backend, make sure it allows the frontend origin. For local development, include `http://localhost:3000` and `http://localhost:5173` in the backend CORS allowlist.
+If you use a custom backend, make sure it allows the frontend origin. Local dev uses `http://localhost:3000` by default; if you change the Vite port (for example to 5173), add that origin too.
+
+## Deployment
+
+For self-hosted backend deployment (env, startup, and switching the frontend to your backend), see `docs/backend_deploy.md`.
 
 ### Admin Dashboard
 
-Access `/admin` (e.g., `http://localhost:5173/admin`).
+Access `/admin` (e.g., `http://localhost:3000/admin`).
 Login with the password set in `ADMIN_PASSWORD` (default: `admin`).
 
 **Features:**
@@ -125,6 +129,11 @@ Configure `backend/.env`:
 | `CORS_ALLOW_ORIGINS` | CORS allowlist (comma-separated, `*` to allow all) | `*` |
 | `APP_HOST` | Server bind host (used by `python -m app.server`) | `0.0.0.0` |
 | `APP_PORT` | Server bind port (used by `python -m app.server`) | `8000` |
+
+## FAQ
+
+**Q: Why do I see both port 3000 and 5173 mentioned? Should there be only one?**
+A: This project pins the Vite dev server to port 3000 in `frontend/vite.config.ts`. Port 5173 is simply Vite's default when you do not set a port. So in this repo, you should normally see only 3000 unless you remove or change that config.
 
 ## License
 
