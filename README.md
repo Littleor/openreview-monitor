@@ -12,8 +12,10 @@ OpenReview Monitor watches specific OpenReview papers and emails you when new re
 
 ## Screenshots
 <p align="center">
-  <img alt="Homepage" src="assets/screenshot-homepage.png" width="48%" />
-  <img alt="Admin Panel" src="assets/screenshot-admin-panel.png" width="48%" />
+  <img alt="Homepage" src="assets/screenshot-homepage.png" width="80%" />
+</p>
+<p align="center">
+  <img alt="Admin Panel" src="assets/screenshot-admin-panel.png" width="80%" />
 </p>
 
 ## Features
