@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -11,23 +11,48 @@ from ..schemas import (
     ConfigResponse, ConfigUpdate, MessageResponse, TestEmailRequest
 )
 from ..utils.auth import verify_admin_password, create_access_token, get_current_admin
+from ..utils.rate_limit import RateLimiter
 from ..services.scheduler import get_email_service
 from ..config import get_settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 settings = get_settings()
+login_rate_limiter = RateLimiter(
+    settings.admin_login_max_attempts,
+    settings.admin_login_window_seconds
+)
+
+
+def _get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
 
 
 @router.post("/login", response_model=TokenResponse)
-async def admin_login(login_data: AdminLogin):
+async def admin_login(login_data: AdminLogin, request: Request):
     """Admin login endpoint."""
+    client_ip = _get_client_ip(request)
+    blocked, retry_after = login_rate_limiter.is_blocked(client_ip)
+    if blocked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many login attempts. Try again in {retry_after}s.",
+            headers={"Retry-After": str(retry_after)}
+        )
+
     if not verify_admin_password(login_data.password):
+        login_rate_limiter.add_attempt(client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect password"
         )
 
+    login_rate_limiter.reset(client_ip)
     access_token = create_access_token(
         data={"role": "admin"},
         expires_delta=timedelta(minutes=settings.access_token_expire_minutes)
