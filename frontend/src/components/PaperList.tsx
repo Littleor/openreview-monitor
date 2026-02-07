@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { api, Paper } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { Trash2, ExternalLink, RefreshCw, MailCheck, Bell } from 'lucide-react'
 
 interface PaperListProps {
@@ -13,13 +14,14 @@ export function PaperList({ onRefresh }: PaperListProps) {
   const [papers, setPapers] = useState<Paper[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const { t, formatDateTime } = useI18n()
 
   const fetchPapers = async () => {
     setLoading(true)
     const result = await api.getPapers()
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
@@ -34,19 +36,19 @@ export function PaperList({ onRefresh }: PaperListProps) {
   }, [])
 
   const handleDelete = async (paperId: number) => {
-    if (!confirm('Are you sure you want to delete this paper and all its subscribers?')) return
+    if (!confirm(t('paperList.confirmDelete'))) return
 
     const result = await api.deletePaper(paperId)
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Success',
-        description: 'Paper deleted successfully',
+        title: t('common.success'),
+        description: t('paperList.toast.deleted'),
       })
       fetchPapers()
       onRefresh?.()
@@ -57,14 +59,14 @@ export function PaperList({ onRefresh }: PaperListProps) {
     const result = await api.checkNow()
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Success',
-        description: 'Paper check initiated. This may take a few minutes.',
+        title: t('common.success'),
+        description: t('paperList.toast.checkInitiated'),
       })
     }
   }
@@ -80,36 +82,53 @@ export function PaperList({ onRefresh }: PaperListProps) {
     return colors[status] || 'bg-gray-100 text-gray-800'
   }
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return t('paperList.status.pending')
+      case 'reviewed':
+        return t('paperList.status.reviewed')
+      case 'accepted':
+        return t('paperList.status.accepted')
+      case 'rejected':
+        return t('paperList.status.rejected')
+      case 'decided':
+        return t('paperList.status.decided')
+      default:
+        return status
+    }
+  }
+
   // Group papers by venue
   const groupedPapers = papers.reduce((acc, paper) => {
-    const venue = paper.venue || 'Unknown Venue'
+    const venue = paper.venue || t('common.unknownVenue')
     if (!acc[venue]) acc[venue] = []
     acc[venue].push(paper)
     return acc
   }, {} as Record<string, Paper[]>)
 
   if (loading) {
-    return <div className="text-center py-8">Loading papers...</div>
+    return <div className="text-center py-8">{t('paperList.loading')}</div>
   }
 
   return (
     <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="font-display">Monitored Papers</CardTitle>
+        <CardTitle className="font-display">{t('paperList.title')}</CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchPapers}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {t('paperList.refresh')}
           </Button>
           <Button variant="default" size="sm" onClick={handleCheckNow}>
-            Check All Now
+            {t('paperList.checkAll')}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {papers.length === 0 ? (
           <p className="text-muted-foreground text-center py-4">
-            No papers being monitored
+            {t('paperList.none')}
           </p>
         ) : (
           <div className="space-y-6">
@@ -119,7 +138,9 @@ export function PaperList({ onRefresh }: PaperListProps) {
                   <span className="bg-primary/10 text-primary px-2 py-1 rounded">
                     {venue}
                   </span>
-                  <span className="text-xs">({venuePapers.length} papers)</span>
+                  <span className="text-xs">
+                    {t('paperList.venueCount', { count: venuePapers.length })}
+                  </span>
                 </h3>
                 <div className="space-y-3">
                   {venuePapers.map((paper) => (
@@ -147,41 +168,55 @@ export function PaperList({ onRefresh }: PaperListProps) {
                               paper.status
                             )}`}
                           >
-                            {paper.status}
+                            {getStatusLabel(paper.status)}
                           </span>
                           <span className="text-muted-foreground">
-                            {paper.subscriber_count} subscriber(s)
+                            {t('paperList.subscriberCount', { count: paper.subscriber_count })}
                           </span>
 
                           {/* Notification status indicators */}
                           <div className="flex items-center gap-2">
                             {paper.notified_review ? (
-                              <span className="flex items-center gap-1 text-xs text-blue-600" title="Review notification sent">
+                              <span
+                                className="flex items-center gap-1 text-xs text-blue-600"
+                                title={t('paperList.reviewSentTitle')}
+                              >
                                 <MailCheck className="h-3 w-3" />
-                                Review
+                                {t('common.review')}
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground" title="Review notification pending">
+                              <span
+                                className="flex items-center gap-1 text-xs text-muted-foreground"
+                                title={t('paperList.reviewPendingTitle')}
+                              >
                                 <Bell className="h-3 w-3" />
-                                Review
+                                {t('common.review')}
                               </span>
                             )}
                             {paper.notified_decision ? (
-                              <span className="flex items-center gap-1 text-xs text-green-600" title="Decision notification sent">
+                              <span
+                                className="flex items-center gap-1 text-xs text-green-600"
+                                title={t('paperList.decisionSentTitle')}
+                              >
                                 <MailCheck className="h-3 w-3" />
-                                Decision
+                                {t('common.decision')}
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground" title="Decision notification pending">
+                              <span
+                                className="flex items-center gap-1 text-xs text-muted-foreground"
+                                title={t('paperList.decisionPendingTitle')}
+                              >
                                 <Bell className="h-3 w-3" />
-                                Decision
+                                {t('common.decision')}
                               </span>
                             )}
                           </div>
                         </div>
                         {paper.last_checked && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Last checked: {new Date(paper.last_checked).toLocaleString()}
+                            {t('paperList.lastChecked', {
+                              date: formatDateTime(paper.last_checked),
+                            })}
                           </p>
                         )}
                       </div>

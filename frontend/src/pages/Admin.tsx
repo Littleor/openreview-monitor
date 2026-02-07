@@ -8,8 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { AdminLogin } from '@/components/AdminLogin'
 import { PaperList } from '@/components/PaperList'
+import { LanguageSwitch } from '@/components/LanguageSwitch'
 import { api, Subscriber, ConfigUpdate } from '@/lib/api'
 import { getApiConfig } from '@/lib/apiBase'
+import { useI18n } from '@/lib/i18n'
 import { Home, LogOut, Trash2, Save, Loader2, Mail, MailCheck, Bell, RotateCcw } from 'lucide-react'
 
 export default function Admin() {
@@ -21,6 +23,7 @@ export default function Admin() {
   const [sendingTestEmail, setSendingTestEmail] = useState(false)
   const [apiInfo, setApiInfo] = useState<{ mode: string; base: string } | null>(null)
   const { toast } = useToast()
+  const { t } = useI18n()
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token')
@@ -57,19 +60,19 @@ export default function Admin() {
   }
 
   const handleDeleteSubscriber = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this subscriber?')) return
+    if (!confirm(t('admin.subscribers.confirmDelete'))) return
 
     const result = await api.deleteSubscriber(id)
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Success',
-        description: 'Subscriber deleted',
+        title: t('common.success'),
+        description: t('admin.toast.subscriberDeleted'),
       })
       loadData()
     }
@@ -79,14 +82,14 @@ export default function Admin() {
     const result = await api.resetSubscriberNotifications(id)
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Success',
-        description: 'Notification status reset',
+        title: t('common.success'),
+        description: t('admin.toast.notificationReset'),
       })
       loadData()
     }
@@ -97,14 +100,14 @@ export default function Admin() {
     const result = await api.updateConfig(configForm)
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Success',
-        description: 'Configuration saved',
+        title: t('common.success'),
+        description: t('admin.toast.configSaved'),
       })
       loadData()
     }
@@ -114,8 +117,8 @@ export default function Admin() {
   const handleSendTestEmail = async () => {
     if (!testEmail) {
       toast({
-        title: 'Error',
-        description: 'Please enter an email address',
+        title: t('common.error'),
+        description: t('admin.toast.emailRequired'),
         variant: 'destructive',
       })
       return
@@ -125,14 +128,14 @@ export default function Admin() {
     const result = await api.sendTestEmail(testEmail)
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Success',
-        description: `Test email sent to ${testEmail}`,
+        title: t('common.success'),
+        description: t('admin.toast.testEmailSent', { email: testEmail }),
       })
     }
     setSendingTestEmail(false)
@@ -145,6 +148,9 @@ export default function Admin() {
           <div className="absolute -top-40 right-0 h-80 w-80 rounded-full bg-teal-200/40 blur-3xl" />
           <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.2)_1px,transparent_0)] bg-[size:24px_24px] opacity-30" />
+          <div className="absolute top-6 right-6">
+            <LanguageSwitch />
+          </div>
           <div className="relative z-10 px-4">
             <AdminLogin onLogin={() => {
               setIsLoggedIn(true)
@@ -158,7 +164,7 @@ export default function Admin() {
 
   // Group subscribers by venue
   const groupedSubscribers = subscribers.reduce((acc, sub) => {
-    const venue = sub.paper_venue || 'Unknown Venue'
+    const venue = sub.paper_venue || t('common.unknownVenue')
     if (!acc[venue]) acc[venue] = []
     acc[venue].push(sub)
     return acc
@@ -178,25 +184,31 @@ export default function Admin() {
                 AD
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Control</p>
-                <h1 className="font-display text-lg font-semibold">Admin Dashboard</h1>
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                  {t('nav.control')}
+                </p>
+                <h1 className="font-display text-lg font-semibold">{t('nav.adminDashboard')}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageSwitch />
               {apiInfo && (
                 <span className="hidden items-center rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs text-muted-foreground lg:inline-flex">
-                  {apiInfo.mode === 'official' ? 'Official backend' : 'Custom backend'} · {apiInfo.base}
+                  {apiInfo.mode === 'official'
+                    ? t('nav.officialBackend')
+                    : t('nav.customBackend')}{' '}
+                  · {apiInfo.base}
                 </span>
               )}
               <Link to="/">
                 <Button variant="ghost" size="sm" className="rounded-full">
                   <Home className="mr-2 h-4 w-4" />
-                  Home
+                  {t('nav.home')}
                 </Button>
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-full">
                 <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                {t('nav.logout')}
               </Button>
             </div>
           </div>
@@ -205,253 +217,264 @@ export default function Admin() {
         <main className="relative z-10 container mx-auto px-4 py-8">
           <Tabs defaultValue="papers" className="space-y-6">
             <TabsList className="bg-white/70 backdrop-blur">
-              <TabsTrigger value="papers">Papers</TabsTrigger>
-              <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
-              <TabsTrigger value="config">Configuration</TabsTrigger>
+              <TabsTrigger value="papers">{t('admin.tabs.papers')}</TabsTrigger>
+              <TabsTrigger value="subscribers">{t('admin.tabs.subscribers')}</TabsTrigger>
+              <TabsTrigger value="config">{t('admin.tabs.config')}</TabsTrigger>
             </TabsList>
+            <TabsContent value="papers">
+              <PaperList onRefresh={loadData} />
+            </TabsContent>
 
-          <TabsContent value="papers">
-            <PaperList onRefresh={loadData} />
-          </TabsContent>
-
-          <TabsContent value="subscribers">
-            <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="font-display">Subscribers</CardTitle>
-                <CardDescription>
-                  Manage email subscribers and their notification status
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {subscribers.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    No subscribers yet
-                  </p>
-                ) : (
-                  <div className="space-y-6">
-                    {Object.entries(groupedSubscribers).map(([venue, venueSubscribers]) => (
-                      <div key={venue}>
-                        <h3 className="font-semibold text-sm text-muted-foreground mb-3">
-                          <span className="bg-primary/10 text-primary px-2 py-1 rounded">
-                            {venue}
-                          </span>
-                        </h3>
-                        <div className="space-y-3">
-                          {venueSubscribers.map((sub) => (
-                            <div
-                              key={sub.id}
-                              className="flex items-start justify-between rounded-xl border border-white/60 bg-white/70 p-4 shadow-sm"
-                            >
-                              <div className="flex-1">
-                                <div className="font-medium">{sub.email}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  Paper: {sub.paper_title || `ID: ${sub.paper_id}`}
-                                </div>
-                                <div className="flex gap-3 mt-2 flex-wrap">
-                                  {/* Review notification status */}
-                                  {sub.notify_on_review && (
-                                    <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                                      sub.notified_review
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                      {sub.notified_review ? (
-                                        <MailCheck className="h-3 w-3" />
-                                      ) : (
-                                        <Bell className="h-3 w-3" />
-                                      )}
-                                      Review {sub.notified_review ? 'Sent' : 'Pending'}
-                                    </span>
-                                  )}
-                                  {sub.notify_on_review_modified && (
-                                    <span className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-amber-100 text-amber-700">
-                                      Review Changes On
-                                    </span>
-                                  )}
-                                  {/* Decision notification status */}
-                                  {sub.notify_on_decision && (
-                                    <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                                      sub.notified_decision
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                      {sub.notified_decision ? (
-                                        <MailCheck className="h-3 w-3" />
-                                      ) : (
-                                        <Bell className="h-3 w-3" />
-                                      )}
-                                      Decision {sub.notified_decision ? 'Sent' : 'Pending'}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="Reset notification status"
-                                  onClick={() => handleResetNotifications(sub.id)}
-                                >
-                                  <RotateCcw className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteSubscriber(sub.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="config">
-            <div className="grid gap-6 lg:grid-cols-2">
+            <TabsContent value="subscribers">
               <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
                 <CardHeader>
-                  <CardTitle className="font-display">System Configuration</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="check_interval">Check Interval (minutes)</Label>
-                      <Input
-                        id="check_interval"
-                        type="number"
-                        min="5"
-                        value={configForm.check_interval || ''}
-                        onChange={(e) =>
-                          setConfigForm({
-                            ...configForm,
-                            check_interval: parseInt(e.target.value),
-                          })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        How often to check for paper updates
-                      </p>
-                    </div>
-
-                    <div className="border-t pt-6">
-                      <h3 className="font-medium mb-4">SMTP Configuration</h3>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="smtp_host">SMTP Host</Label>
-                          <Input
-                            id="smtp_host"
-                            value={configForm.smtp_host || ''}
-                            onChange={(e) =>
-                              setConfigForm({ ...configForm, smtp_host: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="smtp_port">SMTP Port</Label>
-                          <Input
-                            id="smtp_port"
-                            type="number"
-                            value={configForm.smtp_port || ''}
-                            onChange={(e) =>
-                              setConfigForm({
-                                ...configForm,
-                                smtp_port: parseInt(e.target.value),
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="smtp_user">SMTP Username</Label>
-                          <Input
-                            id="smtp_user"
-                            value={configForm.smtp_user || ''}
-                            onChange={(e) =>
-                              setConfigForm({ ...configForm, smtp_user: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="smtp_password">SMTP Password</Label>
-                          <Input
-                            id="smtp_password"
-                            type="password"
-                            placeholder="Enter new password to change"
-                            onChange={(e) =>
-                              setConfigForm({
-                                ...configForm,
-                                smtp_password: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="from_email">From Email</Label>
-                          <Input
-                            id="from_email"
-                            type="email"
-                            value={configForm.from_email || ''}
-                            onChange={(e) =>
-                              setConfigForm({ ...configForm, from_email: e.target.value })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button onClick={handleSaveConfig} disabled={loading} className="w-full">
-                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Configuration
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
-                <CardHeader>
-                  <CardTitle className="font-display">Test Email</CardTitle>
+                  <CardTitle className="font-display">{t('admin.subscribers.title')}</CardTitle>
                   <CardDescription>
-                    Send a test email to verify your SMTP configuration
+                    {t('admin.subscribers.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="test_email">Recipient Email</Label>
-                      <Input
-                        id="test_email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={testEmail}
-                        onChange={(e) => setTestEmail(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      onClick={handleSendTestEmail}
-                      disabled={sendingTestEmail || !testEmail}
-                      className="w-full"
-                    >
-                      {sendingTestEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <Mail className="mr-2 h-4 w-4" />
-                      Send Test Email
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Make sure to save your SMTP configuration before sending a test email.
+                  {subscribers.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      {t('admin.subscribers.none')}
                     </p>
-                  </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {Object.entries(groupedSubscribers).map(([venue, venueSubscribers]) => (
+                        <div key={venue}>
+                          <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                            <span className="bg-primary/10 text-primary px-2 py-1 rounded">
+                              {venue}
+                            </span>
+                          </h3>
+                          <div className="space-y-3">
+                            {venueSubscribers.map((sub) => (
+                              <div
+                                key={sub.id}
+                                className="flex items-start justify-between rounded-xl border border-white/60 bg-white/70 p-4 shadow-sm"
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium">{sub.email}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {t('admin.subscribers.paper', {
+                                      title: sub.paper_title || `ID: ${sub.paper_id}`,
+                                    })}
+                                  </div>
+                                  <div className="flex gap-3 mt-2 flex-wrap">
+                                    {/* Review notification status */}
+                                    {sub.notify_on_review && (
+                                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                                        sub.notified_review
+                                          ? 'bg-blue-100 text-blue-700'
+                                          : 'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {sub.notified_review ? (
+                                          <MailCheck className="h-3 w-3" />
+                                        ) : (
+                                          <Bell className="h-3 w-3" />
+                                        )}
+                                        {t('admin.subscribers.reviewStatus', {
+                                          status: sub.notified_review
+                                            ? t('common.sent')
+                                            : t('common.pending'),
+                                        })}
+                                      </span>
+                                    )}
+                                    {sub.notify_on_review_modified && (
+                                      <span className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-amber-100 text-amber-700">
+                                        {t('admin.subscribers.reviewChanges')}
+                                      </span>
+                                    )}
+                                    {/* Decision notification status */}
+                                    {sub.notify_on_decision && (
+                                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                                        sub.notified_decision
+                                          ? 'bg-green-100 text-green-700'
+                                          : 'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {sub.notified_decision ? (
+                                          <MailCheck className="h-3 w-3" />
+                                        ) : (
+                                          <Bell className="h-3 w-3" />
+                                        )}
+                                        {t('admin.subscribers.decisionStatus', {
+                                          status: sub.notified_decision
+                                            ? t('common.sent')
+                                            : t('common.pending'),
+                                        })}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title={t('admin.subscribers.resetTitle')}
+                                    onClick={() => handleResetNotifications(sub.id)}
+                                  >
+                                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteSubscriber(sub.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+            </TabsContent>
+
+            <TabsContent value="config">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="font-display">{t('admin.config.title')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="check_interval">
+                          {t('admin.config.checkInterval.label')}
+                        </Label>
+                        <Input
+                          id="check_interval"
+                          type="number"
+                          min="5"
+                          value={configForm.check_interval || ''}
+                          onChange={(e) =>
+                            setConfigForm({
+                              ...configForm,
+                              check_interval: parseInt(e.target.value),
+                            })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t('admin.config.checkInterval.help')}
+                        </p>
+                      </div>
+
+                      <div className="border-t pt-6">
+                        <h3 className="font-medium mb-4">{t('admin.config.smtp.title')}</h3>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="smtp_host">{t('admin.config.smtp.host')}</Label>
+                            <Input
+                              id="smtp_host"
+                              value={configForm.smtp_host || ''}
+                              onChange={(e) =>
+                                setConfigForm({ ...configForm, smtp_host: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtp_port">{t('admin.config.smtp.port')}</Label>
+                            <Input
+                              id="smtp_port"
+                              type="number"
+                              value={configForm.smtp_port || ''}
+                              onChange={(e) =>
+                                setConfigForm({
+                                  ...configForm,
+                                  smtp_port: parseInt(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtp_user">{t('admin.config.smtp.user')}</Label>
+                            <Input
+                              id="smtp_user"
+                              value={configForm.smtp_user || ''}
+                              onChange={(e) =>
+                                setConfigForm({ ...configForm, smtp_user: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtp_password">{t('admin.config.smtp.password')}</Label>
+                            <Input
+                              id="smtp_password"
+                              type="password"
+                              placeholder={t('admin.config.smtp.password.placeholder')}
+                              onChange={(e) =>
+                                setConfigForm({
+                                  ...configForm,
+                                  smtp_password: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="from_email">{t('admin.config.smtp.fromEmail')}</Label>
+                            <Input
+                              id="from_email"
+                              type="email"
+                              value={configForm.from_email || ''}
+                              onChange={(e) =>
+                                setConfigForm({ ...configForm, from_email: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button onClick={handleSaveConfig} disabled={loading} className="w-full">
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Save className="mr-2 h-4 w-4" />
+                        {t('admin.config.save')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="font-display">{t('admin.test.title')}</CardTitle>
+                    <CardDescription>
+                      {t('admin.test.description')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="test_email">{t('admin.test.recipient')}</Label>
+                        <Input
+                          id="test_email"
+                          type="email"
+                          placeholder={t('admin.test.placeholder')}
+                          value={testEmail}
+                          onChange={(e) => setTestEmail(e.target.value)}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleSendTestEmail}
+                        disabled={sendingTestEmail || !testEmail}
+                        className="w-full"
+                      >
+                        {sendingTestEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Mail className="mr-2 h-4 w-4" />
+                        {t('admin.test.send')}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        {t('admin.test.helper')}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </main>
     </div>
   </div>
   )

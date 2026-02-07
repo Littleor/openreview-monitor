@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { api } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { Loader2, Lock } from 'lucide-react'
 
 interface AdminLoginProps {
@@ -15,6 +16,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+  const { t } = useI18n()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,15 +26,15 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
 
     if (result.error) {
       toast({
-        title: 'Login Failed',
+        title: t('adminLogin.toast.failed'),
         description: result.error,
         variant: 'destructive',
       })
     } else if (result.data?.token) {
       localStorage.setItem('admin_token', result.data.token)
       toast({
-        title: 'Success',
-        description: 'Logged in successfully',
+        title: t('common.success'),
+        description: t('adminLogin.toast.success'),
       })
       onLogin()
     }
@@ -46,19 +48,19 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <Lock className="h-6 w-6 text-primary" />
         </div>
-        <CardTitle className="font-display">Admin Login</CardTitle>
+        <CardTitle className="font-display">{t('adminLogin.title')}</CardTitle>
         <CardDescription>
-          Enter your admin password to access the dashboard
+          {t('adminLogin.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('adminLogin.password.label')}</Label>
             <Input
               id="password"
               type="password"
-              placeholder="Enter admin password"
+              placeholder={t('adminLogin.password.placeholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -66,7 +68,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Login
+            {t('adminLogin.submit')}
           </Button>
         </form>
       </CardContent>

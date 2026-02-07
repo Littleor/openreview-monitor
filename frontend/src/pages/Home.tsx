@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaperForm } from '@/components/PaperForm'
+import { LanguageSwitch } from '@/components/LanguageSwitch'
 import { BackendSelector } from '@/components/BackendSelector'
 import { Button } from '@/components/ui/button'
 import { getApiConfig } from '@/lib/apiBase'
+import { useI18n } from '@/lib/i18n'
 import { Github, Settings, X } from 'lucide-react'
 
 export default function Home() {
   const [showBackendSettings, setShowBackendSettings] = useState(false)
   const [apiInfo, setApiInfo] = useState<{ mode: string; base: string } | null>(null)
   const githubUrl = 'https://github.com/Littleor/openreview-monitor'
+  const { t } = useI18n()
 
   useEffect(() => {
     setApiInfo(getApiConfig())
@@ -30,10 +33,11 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">OpenReview</p>
-                <h1 className="font-display text-lg font-semibold">Monitor</h1>
+                <h1 className="font-display text-lg font-semibold">{t('brand.monitor')}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageSwitch />
               <Button
                 asChild
                 variant="outline"
@@ -42,7 +46,7 @@ export default function Home() {
               >
                 <a href={githubUrl} target="_blank" rel="noreferrer">
                   <Github className="mr-2 h-4 w-4" />
-                  GitHub
+                  {t('nav.github')}
                 </a>
               </Button>
               <Button
@@ -51,15 +55,15 @@ export default function Home() {
                 className="rounded-full border-white/70 bg-white/70 text-xs text-muted-foreground"
                 onClick={() => setShowBackendSettings(true)}
               >
-                Backend:{' '}
+                {t('nav.backend')}:{' '}
                 <span className="ml-1 font-medium text-foreground">
-                  {apiInfo?.mode === 'custom' ? 'Custom' : 'Official'}
+                  {apiInfo?.mode === 'custom' ? t('nav.custom') : t('nav.official')}
                 </span>
               </Button>
               <Link to="/admin">
                 <Button variant="ghost" size="sm" className="rounded-full">
                   <Settings className="mr-2 h-4 w-4" />
-                  Admin
+                  {t('nav.admin')}
                 </Button>
               </Link>
             </div>
@@ -69,22 +73,29 @@ export default function Home() {
         <main className="relative z-10 container mx-auto px-4 py-12">
           <section className="mx-auto max-w-4xl text-center space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              Always-on OpenReview monitoring
+              {t('home.hero.badge')}
             </div>
             <div className="space-y-4">
               <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-                Know the moment reviews land.
+                {t('home.hero.title')}
               </h2>
               <p className="text-lg text-muted-foreground">
-                OpenReview Monitor tracks submissions 24/7, delivers instant review and decision
-                alerts, and stays transparent with open-source, self-hostable code.
+                {t('home.hero.subtitle')}
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">24/7 monitoring</span>
-              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Open-source &amp; auditable</span>
-              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Self-hostable security</span>
-              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Review and decision alerts</span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">
+                {t('home.hero.tag.monitoring')}
+              </span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">
+                {t('home.hero.tag.auditable')}
+              </span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">
+                {t('home.hero.tag.security')}
+              </span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">
+                {t('home.hero.tag.alerts')}
+              </span>
             </div>
           </section>
 
@@ -94,65 +105,69 @@ export default function Home() {
 
           <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
-              <h3 className="font-display text-lg">Always-on monitoring</h3>
+              <h3 className="font-display text-lg">{t('home.feature.alwaysOn.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                We keep a 24/7 schedule tuned to conference timelines, so you get fast alerts without spam.
+                {t('home.feature.alwaysOn.body')}
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
-              <h3 className="font-display text-lg">Open-source &amp; secure</h3>
+              <h3 className="font-display text-lg">{t('home.feature.openSource.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Audit the code, self-host the backend, and keep credentials under your control.
+                {t('home.feature.openSource.body')}
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
-              <h3 className="font-display text-lg">Full review detail</h3>
+              <h3 className="font-display text-lg">{t('home.feature.details.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Scores, confidence, strengths, and weaknesses are sent straight to your inbox.
+                {t('home.feature.details.body')}
               </p>
             </div>
           </section>
 
           <section className="mt-16 grid gap-6 lg:grid-cols-3">
             <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
-              <h3 className="mt-2 font-display text-lg">Paste the paper link</h3>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                {t('common.stepShort', { current: 1 })}
+              </p>
+              <h3 className="mt-2 font-display text-lg">{t('home.steps.1.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Add an OpenReview URL or paper ID. Credentials are optional but required for some venues.
+                {t('home.steps.1.body')}
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
-              <h3 className="mt-2 font-display text-lg">Confirm details</h3>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                {t('common.stepShort', { current: 2 })}
+              </p>
+              <h3 className="mt-2 font-display text-lg">{t('home.steps.2.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Verify the title, venue, and authors before subscribing with your email address.
+                {t('home.steps.2.body')}
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 3</p>
-              <h3 className="mt-2 font-display text-lg">Get notified</h3>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                {t('common.stepShort', { current: 3 })}
+              </p>
+              <h3 className="mt-2 font-display text-lg">{t('home.steps.3.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Receive email alerts the moment reviews or decisions appear.
+                {t('home.steps.3.body')}
               </p>
             </div>
           </section>
 
           <section className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-6 shadow-lg shadow-amber-900/10">
-              <h3 className="font-display text-lg">Credentials are optional</h3>
+              <h3 className="font-display text-lg">{t('home.callout.credentials.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Some conferences require login to view reviews or decisions. If you provide credentials,
-                we only use them to fetch paper status. For stronger security and control, self-host the
-                open-source backend.
+                {t('home.callout.credentials.body')}
               </p>
             </div>
             <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
-              <h3 className="font-display text-lg">Designed for teams</h3>
+              <h3 className="font-display text-lg">{t('home.callout.teams.title')}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Multiple subscribers can follow the same paper with their own notification preferences.
+                {t('home.callout.teams.body')}
               </p>
               <div className="mt-4 text-xs text-muted-foreground">
-                Tip: share one backend and let everyone pick their own email alerts.
+                {t('home.callout.teams.tip')}
               </div>
             </div>
           </section>
@@ -160,7 +175,7 @@ export default function Home() {
 
         <footer className="relative z-10 border-t border-white/60 bg-white/70">
           <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-            <p>OpenReview Monitor - Stay updated on your paper submissions</p>
+            <p>{t('home.footer.tagline')}</p>
           </div>
         </footer>
       </div>

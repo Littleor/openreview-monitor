@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { api, PaperPreview } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { Loader2, ArrowLeft, Check, Lock } from 'lucide-react'
 
 type Step = 'input' | 'preview' | 'success'
@@ -32,6 +33,7 @@ export function PaperForm() {
   })
 
   const { toast } = useToast()
+  const { t } = useI18n()
 
   useEffect(() => {
     let active = true
@@ -57,7 +59,7 @@ export function PaperForm() {
 
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
@@ -83,7 +85,7 @@ export function PaperForm() {
 
     if (result.error) {
       toast({
-        title: 'Verification failed',
+        title: t('paperForm.toast.verificationFailed'),
         description: result.error,
         variant: 'destructive',
       })
@@ -91,8 +93,8 @@ export function PaperForm() {
       setVerificationSent(true)
       setVerificationExpiresIn(result.data.expires_in_minutes)
       toast({
-        title: 'Verification code sent',
-        description: `Check ${formData.email} for the code.`,
+        title: t('paperForm.toast.verificationSent'),
+        description: t('paperForm.toast.checkEmail', { email: formData.email }),
       })
     }
 
@@ -118,7 +120,7 @@ export function PaperForm() {
 
     if (result.error) {
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: result.error,
         variant: 'destructive',
       })
@@ -152,23 +154,25 @@ export function PaperForm() {
       <Card className="w-full max-w-xl border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-semibold font-display">Monitor a Paper</CardTitle>
+            <CardTitle className="text-2xl font-semibold font-display">
+              {t('paperForm.title')}
+            </CardTitle>
             <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              Step 1 of 3
+              {t('common.step', { current: 1, total: 3 })}
             </span>
           </div>
           <CardDescription>
-            Paste the OpenReview URL or paper ID. Credentials are optional but required for some venues.
+            {t('paperForm.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handlePreview} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="openreview_url">OpenReview URL or Paper ID</Label>
+              <Label htmlFor="openreview_url">{t('paperForm.openreviewUrl.label')}</Label>
               <Input
                 id="openreview_url"
                 type="text"
-                placeholder="https://openreview.net/forum?id=xxx"
+                placeholder={t('paperForm.openreviewUrl.placeholder')}
                 value={formData.openreview_url}
                 onChange={(e) =>
                   setFormData({ ...formData, openreview_url: e.target.value })
@@ -181,24 +185,25 @@ export function PaperForm() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <Lock className="h-4 w-4 text-muted-foreground" />
-                  <span>OpenReview credentials</span>
+                  <span>{t('paperForm.credentials.title')}</span>
                 </div>
                 <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Optional
+                  {t('common.optional')}
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Required for private papers or restricted venues. We only use credentials to fetch
-                paper status. Use at your own risk. For stronger security, self-host the backend.
+                {t('paperForm.credentials.helper')}
               </p>
               {showCredentials && (
                 <div className="mt-4 space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="openreview_username">OpenReview Username</Label>
+                    <Label htmlFor="openreview_username">
+                      {t('paperForm.credentials.username.label')}
+                    </Label>
                     <Input
                       id="openreview_username"
                       type="text"
-                      placeholder="your@email.com"
+                      placeholder={t('paperForm.credentials.username.placeholder')}
                       value={formData.openreview_username}
                       onChange={(e) =>
                         setFormData({ ...formData, openreview_username: e.target.value })
@@ -206,11 +211,13 @@ export function PaperForm() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="openreview_password">OpenReview Password</Label>
+                    <Label htmlFor="openreview_password">
+                      {t('paperForm.credentials.password.label')}
+                    </Label>
                     <Input
                       id="openreview_password"
                       type="password"
-                      placeholder="Your OpenReview password"
+                      placeholder={t('paperForm.credentials.password.placeholder')}
                       value={formData.openreview_password}
                       onChange={(e) =>
                         setFormData({ ...formData, openreview_password: e.target.value })
@@ -226,13 +233,15 @@ export function PaperForm() {
                 className="mt-3"
                 onClick={() => setShowCredentials((current) => !current)}
               >
-                {showCredentials ? 'Hide credentials' : 'Add credentials'}
+                {showCredentials
+                  ? t('paperForm.credentials.hide')
+                  : t('paperForm.credentials.show')}
               </Button>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Fetch Paper Info
+              {t('paperForm.fetch')}
             </Button>
           </form>
         </CardContent>
@@ -251,14 +260,14 @@ export function PaperForm() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <CardTitle className="font-display">Confirm Paper Details</CardTitle>
+                <CardTitle className="font-display">{t('paperForm.confirm.title')}</CardTitle>
                 <CardDescription>
-                  Please verify the information below
+                  {t('paperForm.confirm.subtitle')}
                 </CardDescription>
               </div>
             </div>
             <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              Step 2 of 3
+              {t('common.step', { current: 2, total: 3 })}
             </span>
           </div>
         </CardHeader>
@@ -266,21 +275,23 @@ export function PaperForm() {
           {/* Paper Info */}
           <div className="rounded-xl border border-white/60 bg-white/70 p-4 shadow-sm space-y-3">
             <div>
-              <Label className="text-xs text-muted-foreground">Paper Title</Label>
-              <p className="font-medium">{preview.title || 'Unknown Title'}</p>
+              <Label className="text-xs text-muted-foreground">{t('common.paperTitle')}</Label>
+              <p className="font-medium">{preview.title || t('common.unknownTitle')}</p>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Conference / Venue</Label>
-              <p className="font-medium">{preview.venue || 'Unknown Venue'}</p>
+              <Label className="text-xs text-muted-foreground">
+                {t('common.conferenceVenue')}
+              </Label>
+              <p className="font-medium">{preview.venue || t('common.unknownVenue')}</p>
             </div>
             {preview.authors && preview.authors.length > 0 && (
               <div>
-                <Label className="text-xs text-muted-foreground">Authors</Label>
+                <Label className="text-xs text-muted-foreground">{t('common.authors')}</Label>
                 <p className="text-sm">{preview.authors.join(', ')}</p>
               </div>
             )}
             <div>
-              <Label className="text-xs text-muted-foreground">Paper ID</Label>
+              <Label className="text-xs text-muted-foreground">{t('common.paperId')}</Label>
               <p className="text-sm font-mono">{preview.openreview_id}</p>
             </div>
           </div>
@@ -289,22 +300,21 @@ export function PaperForm() {
           <div className="space-y-4">
             {senderEmail ? (
               <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs text-emerald-900">
-                Notifications are sent from{' '}
-                <span className="font-semibold">{senderEmail}</span>. Add this sender to your
-                allowlist to avoid missing updates.
+                {t('paperForm.info.senderConfigured.prefix')}
+                <span className="font-semibold">{senderEmail}</span>
+                {t('paperForm.info.senderConfigured.suffix')}
               </div>
             ) : (
               <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 text-xs text-muted-foreground">
-                Sender email is not configured yet. Ask the admin to set the From email so you can
-                receive notifications reliably.
+                {t('paperForm.info.senderMissing')}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Your Email Address</Label>
+              <Label htmlFor="email">{t('paperForm.email.label')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder={t('paperForm.email.placeholder')}
                 value={formData.email}
                 onChange={(e) => {
                   const nextEmail = e.target.value
@@ -327,22 +337,24 @@ export function PaperForm() {
                 onClick={handleSendVerification}
               >
                 {verificationSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {verificationSent ? 'Resend verification code' : 'Send verification code'}
+                {verificationSent
+                  ? t('paperForm.verification.resend')
+                  : t('paperForm.verification.send')}
               </Button>
               {verificationSent && verificationExpiresIn && (
                 <p className="text-xs text-muted-foreground">
-                  Code expires in {verificationExpiresIn} minutes.
+                  {t('paperForm.verification.expires', { minutes: verificationExpiresIn })}
                 </p>
               )}
             </div>
             {verificationSent && (
               <div className="space-y-2">
-                <Label htmlFor="verification_code">Verification Code</Label>
+                <Label htmlFor="verification_code">{t('paperForm.verification.label')}</Label>
                 <Input
                   id="verification_code"
                   type="text"
                   inputMode="numeric"
-                  placeholder="6-digit code"
+                  placeholder={t('paperForm.verification.placeholder')}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   required
@@ -351,7 +363,7 @@ export function PaperForm() {
             )}
 
             <div className="space-y-3">
-              <Label>Notification Preferences</Label>
+              <Label>{t('paperForm.preferences.title')}</Label>
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="notify_on_review"
@@ -361,7 +373,7 @@ export function PaperForm() {
                   }
                 />
                 <Label htmlFor="notify_on_review" className="font-normal">
-                  Notify me when reviews are available
+                  {t('paperForm.preferences.review')}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -373,7 +385,7 @@ export function PaperForm() {
                   }
                 />
                 <Label htmlFor="notify_on_review_modified" className="font-normal">
-                  Notify me when reviews are modified
+                  {t('paperForm.preferences.reviewModified')}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -385,7 +397,7 @@ export function PaperForm() {
                   }
                 />
                 <Label htmlFor="notify_on_decision" className="font-normal">
-                  Notify me when the final decision is announced
+                  {t('paperForm.preferences.decision')}
                 </Label>
               </div>
             </div>
@@ -397,7 +409,7 @@ export function PaperForm() {
             onClick={handleConfirm}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirm & Subscribe
+            {t('paperForm.confirm.subscribe')}
           </Button>
         </CardContent>
       </Card>
@@ -412,18 +424,22 @@ export function PaperForm() {
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
             <Check className="h-8 w-8 text-green-600" />
           </div>
-          <h3 className="text-xl font-semibold font-display">Subscription active</h3>
+          <h3 className="text-xl font-semibold font-display">{t('paperForm.success.title')}</h3>
           <p className="text-muted-foreground">
-            You will receive email notifications at <strong>{formData.email}</strong> when there are updates for:
+            {t('paperForm.success.body.prefix')}
+            <strong>{formData.email}</strong>
+            {t('paperForm.success.body.suffix')}
           </p>
           {senderEmail && (
             <p className="text-xs text-muted-foreground">
-              Emails will be sent from <strong>{senderEmail}</strong>. Add it to your allowlist.
+              {t('paperForm.success.sender.prefix')}
+              <strong>{senderEmail}</strong>
+              {t('paperForm.success.sender.suffix')}
             </p>
           )}
           <p className="font-medium">{preview?.title || preview?.openreview_id}</p>
           <Button onClick={handleReset} variant="outline">
-            Monitor Another Paper
+            {t('paperForm.success.monitorAnother')}
           </Button>
         </div>
       </CardContent>
