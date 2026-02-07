@@ -17,6 +17,7 @@ from ..services.openreview import OpenReviewService
 from ..services.scheduler import get_email_service
 from ..config import get_settings
 from ..utils.crypto import encrypt_value
+from ..utils.auth import get_current_admin
 from ..utils.rate_limit import RateLimiter
 
 router = APIRouter(prefix="/api/papers", tags=["papers"])
@@ -311,7 +312,11 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{paper_id}/status", response_model=PaperStatusResponse)
-async def get_paper_status(paper_id: int, db: Session = Depends(get_db)):
+async def get_paper_status(
+    paper_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_admin)
+):
     """Get the current status of a paper."""
     paper = db.query(Paper).filter(Paper.id == paper_id).first()
 
