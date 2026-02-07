@@ -60,9 +60,21 @@ async def preview_paper(request: PaperPreviewRequest):
             authors=paper_info.get("authors", [])
         )
     except Exception as e:
+        error_text = str(e)
+        if "ForbiddenError" in error_text or "permission" in error_text.lower() or "status': 403" in error_text:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "This paper appears to be private or requires OpenReview login. "
+                    "Please enter your OpenReview username and password, or use a public paper URL."
+                )
+            )
         raise HTTPException(
             status_code=400,
-            detail=f"Failed to fetch paper info: {str(e)}. Please check the URL and credentials."
+            detail=(
+                "Failed to fetch paper info. Please check the OpenReview URL or ID, "
+                "and provide credentials if the paper is private."
+            )
         )
 
 
