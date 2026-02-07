@@ -65,7 +65,6 @@ class PaperStatusResponse(BaseModel):
     title: Optional[str]
     status: str
     venue: Optional[str]
-    review_data: Optional[dict] = None
 
 
 class PaperUpdate(BaseModel):

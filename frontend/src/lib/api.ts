@@ -162,7 +162,7 @@ export const api = {
     fetchApi<PublicEmailConfig>('/public/email-config'),
 
   getPaperStatus: (paperId: number) =>
-    fetchApi<{ id: number; title: string; status: string; venue: string; review_data: object }>(
+    fetchApi<{ id: number; title: string; status: string; venue: string }>(
       `/papers/${paperId}/status`
     ),
 

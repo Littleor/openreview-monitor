@@ -296,6 +296,5 @@ async def get_paper_status(paper_id: int, db: Session = Depends(get_db)):
         id=paper.id,
         title=paper.title,
         status=paper.status,
-        venue=paper.venue,
-        review_data=paper.review_data
+        venue=paper.venue
     )
