@@ -1,6 +1,16 @@
 node_modules
-.env
-.venv
 
+.env
+.env.*
+!.env.example
+
+.venv
 __pycache__
 *.pyc
+
+.DS_Store
+.claude/
+
+*.db
+*.sqlite
+*.sqlite3
