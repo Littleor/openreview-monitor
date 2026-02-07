@@ -16,6 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
+is_production = settings.app_env.lower() in {"production", "prod"}
 
 
 def parse_cors_origins(value: str) -> list[str]:
@@ -47,6 +48,9 @@ app = FastAPI(
     title="OpenReview Monitor",
     description="Monitor OpenReview paper submissions and get notified of reviews and decisions",
     version="1.0.0",
+    openapi_url=None if is_production else "/openapi.json",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
     lifespan=lifespan
 )
 

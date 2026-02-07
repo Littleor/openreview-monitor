@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     admin_login_max_attempts: int = 5
     admin_login_window_seconds: int = 300
 
+    # App environment
+    app_env: str = "development"
+
     # Database
     database_url: str = "sqlite:///./openreview_monitor.db"
     db_path: str = ""
