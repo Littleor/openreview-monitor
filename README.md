@@ -2,9 +2,9 @@
 
 [中文说明](README_zh.md)
 
-Email alerts for OpenReview paper updates.
+Privacy-first, self-hostable OpenReview monitor: email alerts for new reviews, reviewer score changes, and decisions.
 
-OpenReview Monitor watches specific OpenReview papers and emails you when reviews or decisions are posted.
+OpenReview Monitor watches specific OpenReview papers and emails you when new reviews are posted, ratings/scores change, or decisions are announced.
 
 ## Demo
 - Frontend: [openreview-monitor.vercel.app](https://openreview-monitor.vercel.app)
@@ -18,14 +18,15 @@ OpenReview Monitor watches specific OpenReview papers and emails you when review
 
 ## Features
 - Track papers by URL or ID.
-- Email notifications for new reviews and decisions.
+- Email notifications for new reviews, review edits (e.g., rating/score changes), and decisions.
 - Admin panel (`/admin`) for managing papers/subscribers and triggering a manual check.
-- Self-hostable backend: FastAPI + SQLite + SMTP (no public server required).
+- Self-hostable backend: FastAPI + SQLite + SMTP (keep OpenReview credentials private; no public server required).
 - Frontend can switch between the hosted backend and your own backend.
 
 ## How It Works
 - The backend checks OpenReview on a schedule (`CHECK_INTERVAL`).
 - Latest state is persisted in SQLite; notifications are delivered via your SMTP provider.
+- It can also notify when a reviewer updates their review (e.g., rating/score changes).
 - The frontend is a thin client that can talk to the hosted backend or your self-hosted backend.
 
 ## Quick Start (Hosted UI)
@@ -34,6 +35,8 @@ OpenReview Monitor watches specific OpenReview papers and emails you when review
 3. Enter your email address.
 4. Optional: provide OpenReview credentials (some venues require login).
 5. Submit and wait for email updates.
+
+Tip: enable `Notify me when reviews are modified` to get alerts when a reviewer changes their rating/score.
 
 ## Self-host Backend (No Public Server Required)
 You can run the backend on your own machine or private network. A public server is not required.

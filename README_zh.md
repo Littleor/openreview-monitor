@@ -2,9 +2,9 @@
 
 [English](README.md)
 
-OpenReview 论文更新邮件提醒。
+OpenReview 论文更新邮件提醒（新 Review / 评分变动 / Decision），支持自建后端，隐私更可控。
 
-OpenReview Monitor 用于监控指定论文的评审动态与录用结果：当有新 Review 或 Decision 发布时，系统会自动发送邮件通知。
+OpenReview Monitor 用于监控指定论文的评审动态与录用结果：当有新 Review、Reviewer 修改评分/评审内容，或 Decision 发布时，系统会自动发送邮件通知。
 
 ## 在线体验
 - 前端: [openreview-monitor.vercel.app](https://openreview-monitor.vercel.app)
@@ -18,14 +18,15 @@ OpenReview Monitor 用于监控指定论文的评审动态与录用结果：当�
 
 ## 功能亮点
 - 通过链接或 ID 监控指定 OpenReview 论文。
-- Review / Decision 更新自动邮件提醒。
+- 新 Review / Review 修改（如评分变动）/ Decision 更新自动邮件提醒。
 - 管理后台（`/admin`）：管理论文与订阅者、手动触发检查。
-- 可自建后端：FastAPI + SQLite + SMTP（无需公网服务器）。
+- 可自建后端：FastAPI + SQLite + SMTP（无需公网服务器；OpenReview 账号密码等敏感信息更可控）。
 - 前端支持在托管后端与自建后端之间切换。
 
 ## 工作原理
 - 后端按固定间隔（`CHECK_INTERVAL`）定时检查 OpenReview 状态。
 - 状态落库到 SQLite，通知通过 SMTP 邮件发送。
+- 支持监控 Review 的更新（例如 Reviewer 修改了评分/Confidence 等字段）。
 - 前端只是轻量客户端，可连接托管后端或你的自建后端。
 
 ## 快速开始（托管版）
@@ -34,6 +35,8 @@ OpenReview Monitor 用于监控指定论文的评审动态与录用结果：当�
 3. 填写接收邮箱。
 4. 可选: 某些会议需要登录才能查看结果，可填写 OpenReview 账号密码。
 5. 提交后等待邮件通知。
+
+提示：勾选 `Notify me when reviews are modified` 可在 Reviewer 修改评分时收到邮件提醒。
 
 ## 自建后端（无需公网服务器）
 后端可以运行在本机或内网机器上，无需公网服务器。
