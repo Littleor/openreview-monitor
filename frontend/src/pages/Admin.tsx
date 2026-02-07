@@ -455,5 +455,6 @@ export default function Admin() {
         </Tabs>
       </main>
     </div>
+  </div>
   )
 }
