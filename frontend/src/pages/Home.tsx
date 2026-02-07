@@ -1,10 +1,19 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PaperForm } from '@/components/PaperForm'
 import { BackendSelector } from '@/components/BackendSelector'
 import { Button } from '@/components/ui/button'
-import { Settings } from 'lucide-react'
+import { getApiConfig } from '@/lib/apiBase'
+import { Settings, X } from 'lucide-react'
 
 export default function Home() {
+  const [showBackendSettings, setShowBackendSettings] = useState(false)
+  const [apiInfo, setApiInfo] = useState<{ mode: string; base: string } | null>(null)
+
+  useEffect(() => {
+    setApiInfo(getApiConfig())
+  }, [])
+
   return (
     <div className="min-h-screen bg-background">
       <div className="relative overflow-hidden">
@@ -23,12 +32,25 @@ export default function Home() {
                 <h1 className="font-display text-lg font-semibold">Monitor</h1>
               </div>
             </div>
-            <Link to="/admin">
-              <Button variant="ghost" size="sm" className="rounded-full">
-                <Settings className="mr-2 h-4 w-4" />
-                Admin
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-white/70 bg-white/70 text-xs text-muted-foreground"
+                onClick={() => setShowBackendSettings(true)}
+              >
+                Backend:{' '}
+                <span className="ml-1 font-medium text-foreground">
+                  {apiInfo?.mode === 'custom' ? 'Custom' : 'Official'}
+                </span>
               </Button>
-            </Link>
+              <Link to="/admin">
+                <Button variant="ghost" size="sm" className="rounded-full">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Admin
+                </Button>
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -55,12 +77,6 @@ export default function Home() {
 
           <section className="mt-10 flex justify-center">
             <PaperForm />
-          </section>
-
-          <section className="mt-6 flex justify-center">
-            <div className="w-full max-w-xl">
-              <BackendSelector />
-            </div>
           </section>
 
           <section className="mt-12 grid gap-4 sm:grid-cols-2">
@@ -129,6 +145,28 @@ export default function Home() {
           </div>
         </footer>
       </div>
+
+      {showBackendSettings && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowBackendSettings(false)}
+        >
+          <div
+            className="relative w-full max-w-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -top-12 right-0 text-white hover:bg-white/20"
+              onClick={() => setShowBackendSettings(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <BackendSelector onChange={(config) => setApiInfo(config)} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

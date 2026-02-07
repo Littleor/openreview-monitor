@@ -12,6 +12,10 @@ import {
   setCustomApiBase,
 } from '@/lib/apiBase'
 
+type BackendSelectorProps = {
+  onChange?: (config: ReturnType<typeof getApiConfig>) => void
+}
+
 const formatBase = (value: string) => {
   if (value.startsWith('/')) {
     return `Same origin (${value})`
@@ -19,7 +23,7 @@ const formatBase = (value: string) => {
   return value
 }
 
-export function BackendSelector() {
+export function BackendSelector({ onChange }: BackendSelectorProps) {
   const [mode, setMode] = useState<ApiMode>('official')
   const [selectedMode, setSelectedMode] = useState<ApiMode>('official')
   const [customInput, setCustomInput] = useState('')
@@ -35,6 +39,7 @@ export function BackendSelector() {
     setCustomInput(config.customBase)
     setActiveBase(config.base)
     setOfficialBase(config.officialBase)
+    onChange?.(config)
   }
 
   useEffect(() => {
