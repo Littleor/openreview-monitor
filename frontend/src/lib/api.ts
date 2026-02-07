@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+import { buildApiUrl, getApiBase } from './apiBase'
 
 interface ApiResponse<T> {
   data?: T;
@@ -26,7 +26,7 @@ async function fetchApi<T>(
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const response = await fetch(buildApiUrl(getApiBase(), endpoint), {
         ...options,
         headers,
         signal: controller.signal,

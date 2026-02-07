@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { AdminLogin } from '@/components/AdminLogin'
 import { PaperList } from '@/components/PaperList'
 import { api, Subscriber, Config, ConfigUpdate } from '@/lib/api'
+import { getApiConfig } from '@/lib/apiBase'
 import { Home, LogOut, Trash2, Save, Loader2, Mail, MailCheck, Bell, RotateCcw } from 'lucide-react'
 
 export default function Admin() {
@@ -19,6 +20,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(false)
   const [testEmail, setTestEmail] = useState('')
   const [sendingTestEmail, setSendingTestEmail] = useState(false)
+  const [apiInfo, setApiInfo] = useState<{ mode: string; base: string } | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export default function Admin() {
       setIsLoggedIn(true)
       loadData()
     }
+    setApiInfo(getApiConfig())
   }, [])
 
   const loadData = async () => {
@@ -139,11 +142,18 @@ export default function Admin() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20">
-        <AdminLogin onLogin={() => {
-          setIsLoggedIn(true)
-          loadData()
-        }} />
+      <div className="min-h-screen bg-background">
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+          <div className="absolute -top-40 right-0 h-80 w-80 rounded-full bg-teal-200/40 blur-3xl" />
+          <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.2)_1px,transparent_0)] bg-[size:24px_24px] opacity-30" />
+          <div className="relative z-10 px-4">
+            <AdminLogin onLogin={() => {
+              setIsLoggedIn(true)
+              loadData()
+            }} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -158,43 +168,58 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">⚙️</span>
-            <h1 className="text-xl font-bold">Admin Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link to="/">
-              <Button variant="ghost" size="sm">
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Button>
-            </Link>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      <div className="relative overflow-hidden">
+        <div className="absolute -top-40 right-0 h-80 w-80 rounded-full bg-teal-200/40 blur-3xl" />
+        <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.2)_1px,transparent_0)] bg-[size:24px_24px] opacity-30" />
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="papers" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="papers">Papers</TabsTrigger>
-            <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
-            <TabsTrigger value="config">Configuration</TabsTrigger>
-          </TabsList>
+        <header className="relative z-10 border-b border-white/60 bg-white/70 backdrop-blur">
+          <div className="container mx-auto flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold">
+                AD
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Control</p>
+                <h1 className="font-display text-lg font-semibold">Admin Dashboard</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {apiInfo && (
+                <span className="hidden items-center rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs text-muted-foreground lg:inline-flex">
+                  {apiInfo.mode === 'official' ? 'Official backend' : 'Custom backend'} · {apiInfo.base}
+                </span>
+              )}
+              <Link to="/">
+                <Button variant="ghost" size="sm" className="rounded-full">
+                  <Home className="mr-2 h-4 w-4" />
+                  Home
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-full">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="relative z-10 container mx-auto px-4 py-8">
+          <Tabs defaultValue="papers" className="space-y-6">
+            <TabsList className="bg-white/70 backdrop-blur">
+              <TabsTrigger value="papers">Papers</TabsTrigger>
+              <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
+              <TabsTrigger value="config">Configuration</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="papers">
             <PaperList onRefresh={loadData} />
           </TabsContent>
 
           <TabsContent value="subscribers">
-            <Card>
+            <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
               <CardHeader>
-                <CardTitle>Subscribers</CardTitle>
+                <CardTitle className="font-display">Subscribers</CardTitle>
                 <CardDescription>
                   Manage email subscribers and their notification status
                 </CardDescription>
@@ -217,7 +242,7 @@ export default function Admin() {
                           {venueSubscribers.map((sub) => (
                             <div
                               key={sub.id}
-                              className="flex items-start justify-between p-4 border rounded-lg"
+                              className="flex items-start justify-between rounded-xl border border-white/60 bg-white/70 p-4 shadow-sm"
                             >
                               <div className="flex-1">
                                 <div className="font-medium">{sub.email}</div>
@@ -287,9 +312,9 @@ export default function Admin() {
 
           <TabsContent value="config">
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
+              <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
                 <CardHeader>
-                  <CardTitle>System Configuration</CardTitle>
+                  <CardTitle className="font-display">System Configuration</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -386,9 +411,9 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
                 <CardHeader>
-                  <CardTitle>Test Email</CardTitle>
+                  <CardTitle className="font-display">Test Email</CardTitle>
                   <CardDescription>
                     Send a test email to verify your SMTP configuration
                   </CardDescription>

@@ -1,98 +1,132 @@
 import { Link } from 'react-router-dom'
 import { PaperForm } from '@/components/PaperForm'
+import { BackendSelector } from '@/components/BackendSelector'
 import { Button } from '@/components/ui/button'
 import { Settings } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📝</span>
-            <h1 className="text-xl font-bold">OpenReview Monitor</h1>
+    <div className="min-h-screen bg-background">
+      <div className="relative overflow-hidden">
+        <div className="absolute -top-40 right-0 h-80 w-80 rounded-full bg-teal-200/40 blur-3xl" />
+        <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.2)_1px,transparent_0)] bg-[size:24px_24px] opacity-30" />
+
+        <header className="relative z-10 border-b border-white/60 bg-white/70 backdrop-blur">
+          <div className="container mx-auto flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold">
+                OR
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">OpenReview</p>
+                <h1 className="font-display text-lg font-semibold">Monitor</h1>
+              </div>
+            </div>
+            <Link to="/admin">
+              <Button variant="ghost" size="sm" className="rounded-full">
+                <Settings className="mr-2 h-4 w-4" />
+                Admin
+              </Button>
+            </Link>
           </div>
-          <Link to="/admin">
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Admin
-            </Button>
-          </Link>
-        </div>
-      </header>
+        </header>
 
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto text-center mb-12">
-          <h2 className="text-4xl font-bold tracking-tight mb-4">
-            Never Miss a Review Again
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Monitor your OpenReview paper submissions and get notified instantly
-            when reviews are posted or decisions are announced.
-          </p>
-        </div>
+        <main className="relative z-10 container mx-auto px-4 py-12">
+          <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                OpenReview status radar
+              </div>
+              <div className="space-y-4">
+                <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+                  Know the moment reviews land.
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Track OpenReview submissions, collect review updates, and get email alerts the
+                  second a decision drops.
+                </p>
+              </div>
 
-        <div className="flex justify-center">
-          <PaperForm />
-        </div>
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">No browser extension</span>
+                <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Review and decision alerts</span>
+                <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Works with private papers</span>
+              </div>
 
-        <div className="mt-16 max-w-3xl mx-auto">
-          <h3 className="text-xl font-semibold mb-6 text-center">How it works</h3>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="text-center p-4">
-              <div className="text-3xl mb-2">1️⃣</div>
-              <h4 className="font-medium mb-1">Enter Paper URL</h4>
-              <p className="text-sm text-muted-foreground">
-                Paste your OpenReview paper URL. For private papers, add your OpenReview credentials.
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
+                  <h3 className="font-display text-lg">Smarter checking</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    We check when conferences usually release results, so you get alerts without spam.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
+                  <h3 className="font-display text-lg">Full review detail</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Scores, confidence, strengths, and weaknesses are sent straight to your inbox.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <BackendSelector />
+              <PaperForm />
+            </div>
+          </section>
+
+          <section className="mt-16 grid gap-6 lg:grid-cols-3">
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 1</p>
+              <h3 className="mt-2 font-display text-lg">Paste the paper link</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Add an OpenReview URL or paper ID. Credentials are optional but required for some venues.
               </p>
             </div>
-            <div className="text-center p-4">
-              <div className="text-3xl mb-2">2️⃣</div>
-              <h4 className="font-medium mb-1">Confirm & Subscribe</h4>
-              <p className="text-sm text-muted-foreground">
-                Verify the paper details and enter your email to receive notifications.
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 2</p>
+              <h3 className="mt-2 font-display text-lg">Confirm details</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Verify the title, venue, and authors before subscribing with your email address.
               </p>
             </div>
-            <div className="text-center p-4">
-              <div className="text-3xl mb-2">3️⃣</div>
-              <h4 className="font-medium mb-1">Get Notified</h4>
-              <p className="text-sm text-muted-foreground">
-                Receive detailed email alerts when reviews or decisions are available.
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 3</p>
+              <h3 className="mt-2 font-display text-lg">Get notified</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Receive email alerts the moment reviews or decisions appear.
               </p>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="mt-12 max-w-2xl mx-auto">
-          <div className="bg-muted/50 rounded-lg p-6">
-            <h3 className="font-semibold mb-3">Features</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <span className="text-green-500">✓</span>
-                <span>Smart checking: Only checks when conferences typically release results</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500">✓</span>
-                <span>Full review details: Ratings, confidence, strengths & weaknesses in your email</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500">✓</span>
-                <span>Private paper support: Use your OpenReview credentials for author-only papers</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500">✓</span>
-                <span>No duplicate notifications: Each update is sent only once</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </main>
+          <section className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-6 shadow-lg shadow-amber-900/10">
+              <h3 className="font-display text-lg">Credentials are optional</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Some conferences require login to view reviews or decisions. If you provide credentials,
+                we only use them to fetch paper status. Use at your own risk. For stronger security,
+                self-host the backend service.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
+              <h3 className="font-display text-lg">Designed for teams</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Multiple subscribers can follow the same paper with their own notification preferences.
+              </p>
+              <div className="mt-4 text-xs text-muted-foreground">
+                Tip: share one backend and let everyone pick their own email alerts.
+              </div>
+            </div>
+          </section>
+        </main>
 
-      <footer className="border-t mt-auto">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>OpenReview Monitor - Stay updated on your paper submissions</p>
-        </div>
-      </footer>
+        <footer className="relative z-10 border-t border-white/60 bg-white/70">
+          <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+            <p>OpenReview Monitor - Stay updated on your paper submissions</p>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

@@ -93,9 +93,9 @@ export function PaperList({ onRefresh }: PaperListProps) {
   }
 
   return (
-    <Card>
+    <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Monitored Papers</CardTitle>
+        <CardTitle className="font-display">Monitored Papers</CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchPapers}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -125,7 +125,7 @@ export function PaperList({ onRefresh }: PaperListProps) {
                   {venuePapers.map((paper) => (
                     <div
                       key={paper.id}
-                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                      className="flex items-start justify-between rounded-xl border border-white/60 bg-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">

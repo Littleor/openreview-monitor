@@ -11,6 +11,7 @@ An automated system for monitoring OpenReview paper submissions, tracking review
 - **Multi-user Support**: Multiple users can subscribe to monitor the same paper with individual preferences.
 - **Admin Dashboard**: Web interface for managing papers, subscribers, and system settings.
 - **Automatic Checking**: Background scheduler checks for updates periodically (default: every 30 mins).
+- **Backend Switcher**: Frontend can point to the official backend or a custom deployment.
 
 ## Tech Stack
 
@@ -73,13 +74,24 @@ npm run dev
 ```
 UI runs at `http://localhost:5173`.
 
+Optional frontend env:
+- `VITE_OFFICIAL_API_BASE_URL`: The official backend base URL. The UI will append `/api` if missing.
+
 ## Usage
 
 ### Monitor a Paper
 
 1. **Find Paper**: Copy the URL or ID of the OpenReview paper you want to track.
 2. **Subscribe**: On the home page, paste the URL/ID and enter your email.
-3. **Submit**: Click "Add Paper to Monitor". You will receive notifications when the paper status changes.
+3. **Credentials (Optional)**: Some venues require login to access reviews or decisions. If you provide credentials, they are used only to fetch paper status. Use at your own risk, or self-host for stronger security.
+4. **Submit**: Click "Add Paper to Monitor". You will receive notifications when the paper status changes.
+
+## Backend Selection (Official vs Custom)
+
+The frontend lets users switch between the official backend and a custom deployment. This is useful for users who prefer to self-host.
+
+**CORS reminder (important):**
+If you use a custom backend, make sure it allows the frontend origin. For local development, include `http://localhost:3000` and `http://localhost:5173` in the backend CORS allowlist.
 
 ### Admin Dashboard
 
@@ -104,6 +116,7 @@ Configure `backend/.env`:
 | `SMTP_USER` | Email username | - |
 | `SMTP_PASSWORD` | Email password (use App Password for Gmail) | - |
 | `CHECK_INTERVAL` | Check interval in minutes | `30` |
+| `CORS_ALLOW_ORIGINS` | CORS allowlist (comma-separated, `*` to allow all) | `*` |
 
 ## License
 
