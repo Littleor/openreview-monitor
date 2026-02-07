@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-OpenReview Monitor 是一个轻量的 OpenReview 论文监控系统，自动追踪 Review 与录用结果，并通过邮件通知你。
+OpenReview Monitor 是一个专业、轻量的 OpenReview 论文监控系统，自动追踪 Review 与录用结果，并通过邮件通知你。
 
 ## 在线体验
 - 前端: [openreview-monitor.vercel.app](https://openreview-monitor.vercel.app)
@@ -17,7 +17,7 @@ OpenReview Monitor 是一个轻量的 OpenReview 论文监控系统，自动追�
 - 有新 Review 或决定时自动邮件提醒。
 - 提供简洁的管理后台，统一管理论文与订阅者。
 
-## 怎么用
+## 快速使用（托管版）
 1. 打开前端页面。
 2. 粘贴 OpenReview 论文链接或 ID。
 3. 填写接收邮箱。

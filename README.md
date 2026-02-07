@@ -2,7 +2,7 @@
 
 [中文说明](README_zh.md)
 
-OpenReview Monitor is a lightweight OpenReview paper tracker. It watches for new reviews or decisions and emails you when updates appear.
+OpenReview Monitor is a clean, reliable tracker for OpenReview papers. It watches your submissions for new reviews or decisions and notifies you by email.
 
 ## Live Demo
 - Frontend: [openreview-monitor.vercel.app](https://openreview-monitor.vercel.app)
@@ -12,20 +12,20 @@ OpenReview Monitor is a lightweight OpenReview paper tracker. It watches for new
 ![Homepage](assets/screenshot-homepage.png)
 ![Admin Panel](assets/screenshot-admin-panel.png)
 
-## What It Is
-- Monitor specific OpenReview papers by URL or ID.
-- Get notified when new reviews or decisions are posted.
-- Manage papers and subscribers in a simple admin panel.
+## What It Does
+- Track specific OpenReview papers by URL or ID.
+- Notify you when reviews or decisions are posted.
+- Offer a simple admin panel for managing papers and subscribers.
 
-## How to Use
+## Quick Start (Hosted)
 1. Open the frontend.
 2. Paste an OpenReview paper URL or ID.
-3. Enter your email.
-4. Optional: add OpenReview credentials for venues that require login.
+3. Enter your email address.
+4. Optional: provide OpenReview credentials for venues that require login.
 5. Submit and wait for notifications.
 
 ## Self-host Backend (No Public Server Required)
-You can run the backend on your own machine or private network. No public server is required.
+You can run the backend on your own machine or private network. A public server is not required.
 
 1. `cd backend`
 2. `cp .env.example .env` and fill `SMTP_*`, `FROM_EMAIL`, and `ADMIN_PASSWORD`.
