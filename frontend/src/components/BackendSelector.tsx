@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -6,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import {
   ApiMode,
+  buildApiUrl,
   getApiConfig,
   normalizeApiBase,
   setApiMode,
@@ -30,6 +32,7 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
   const [activeBase, setActiveBase] = useState('')
   const [officialBase, setOfficialBase] = useState('')
   const [error, setError] = useState('')
+  const [isChecking, setIsChecking] = useState(false)
   const { toast } = useToast()
 
   const refresh = () => {
@@ -58,8 +61,8 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
     })
   }
 
-  const applyCustom = () => {
-    const normalized = setCustomApiBase(customInput)
+  const applyCustom = (base: string) => {
+    const normalized = setCustomApiBase(base)
     if (!normalized) {
       setError('Enter a valid base URL, for example http://localhost:8000')
       return false
@@ -75,6 +78,48 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
     return true
   }
 
+  const checkBackendHealth = async (base: string) => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+    try {
+      const response = await fetch(buildApiUrl(base, '/health'), {
+        signal: controller.signal,
+      })
+      if (!response.ok) {
+        return { ok: false, message: `Health check failed (HTTP ${response.status}).` }
+      }
+      return { ok: true }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { ok: false, message: 'Health check timed out. Please verify the backend address.' }
+      }
+      return { ok: false, message: 'Unable to reach the backend. Please verify the address.' }
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  const confirmCustom = async () => {
+    const normalized = normalizeApiBase(customInput)
+    if (!normalized) {
+      setError('Enter a valid base URL, for example http://localhost:8000')
+      return
+    }
+
+    setIsChecking(true)
+    setError('')
+    const result = await checkBackendHealth(normalized)
+    setIsChecking(false)
+
+    if (!result.ok) {
+      setError(result.message)
+      return
+    }
+
+    applyCustom(normalized)
+  }
+
   const handleModeChange = (value: string) => {
     const nextMode = value as ApiMode
     setSelectedMode(nextMode)
@@ -83,12 +128,7 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
       applyOfficial()
       return
     }
-
-    if (normalizeApiBase(customInput)) {
-      applyCustom()
-    } else {
-      setError('Enter a valid base URL to activate the custom backend.')
-    }
+    setError('')
   }
 
   return (
@@ -121,40 +161,37 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
                 setCustomInput(event.target.value)
                 setError('')
               }}
-              onBlur={() => {
-                if (selectedMode === 'custom') {
-                  applyCustom()
-                }
-              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault()
-                  applyCustom()
+                  confirmCustom()
                 }
               }}
               placeholder="https://your-backend.example.com"
             />
             <p className="text-xs text-muted-foreground">
-              We will append <span className="font-mono">/api</span> if it is missing. Press Enter or
-              move focus to apply.
+              We will append <span className="font-mono">/api</span> if it is missing. Click confirm
+              to apply.
             </p>
             {normalizedPreview && (
               <p className="text-xs text-muted-foreground">
                 Normalized: <span className="font-mono">{normalizedPreview}</span>
               </p>
             )}
+            <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 p-3 text-xs text-amber-900">
+              添加未知的后端可能会导致泄露您的密钥，推荐使用自建或采用官方的后端，除了自己的后端之外都有泄露风险，风险自担。
+            </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
+            <Button
+              type="button"
+              className="mt-2"
+              onClick={confirmCustom}
+              disabled={isChecking}
+            >
+              {isChecking ? 'Checking...' : 'Confirm'}
+            </Button>
           </div>
         )}
-
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs text-muted-foreground">
-          <p className="font-medium text-foreground">CORS reminder (important)</p>
-          <p>
-            Your backend must allow this frontend origin. For local dev, add
-            <span className="font-mono"> http://localhost:3000</span> and
-            <span className="font-mono"> http://localhost:5173</span> to your CORS allowlist.
-          </p>
-        </div>
 
         <div className="text-xs text-muted-foreground">
           Current API base: <span className="font-mono">{formatBase(activeBase)}</span>
