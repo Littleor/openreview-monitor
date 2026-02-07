@@ -6,7 +6,7 @@ import logging
 from .database import init_db
 from .routers import papers, admin, subscribers, public
 from .services.scheduler import start_scheduler, stop_scheduler
-from .config import get_settings
+from .config import get_settings, validate_security_settings
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
     logger.info("Starting OpenReview Monitor...")
+    validate_security_settings(settings)
     init_db()
     start_scheduler(settings.check_interval)
     logger.info("Application started successfully")

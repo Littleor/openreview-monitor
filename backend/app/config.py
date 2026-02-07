@@ -1,7 +1,12 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from pathlib import Path
+import logging
 import os
+
+
+DEFAULT_ADMIN_PASSWORD = "admin"
+DEFAULT_SECRET_KEY = "your-secret-key-change-in-production"
 
 
 def _sqlite_url_from_path(path: str) -> str:
@@ -61,3 +66,21 @@ def get_settings() -> Settings:
     if not os.getenv("DATABASE_URL") and settings.db_path:
         settings.database_url = _sqlite_url_from_path(settings.db_path)
     return settings
+
+
+def validate_security_settings(settings: Settings) -> None:
+    """Prevent startup if insecure default secrets are in use."""
+    issues = []
+    if settings.admin_password == DEFAULT_ADMIN_PASSWORD:
+        issues.append("ADMIN_PASSWORD is set to the default value")
+    if settings.secret_key == DEFAULT_SECRET_KEY:
+        issues.append("SECRET_KEY is set to the default value")
+
+    if issues:
+        logger = logging.getLogger(__name__)
+        for issue in issues:
+            logger.error(issue)
+        raise RuntimeError(
+            "Refusing to start with insecure defaults. "
+            "Please set ADMIN_PASSWORD and SECRET_KEY in your environment."
+        )
