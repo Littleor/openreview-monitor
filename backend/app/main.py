@@ -18,6 +18,13 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+def parse_cors_origins(value: str) -> list[str]:
+    """Parse comma-separated CORS origins."""
+    if not value or value.strip() == "*":
+        return ["*"]
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
@@ -45,7 +52,8 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=parse_cors_origins(settings.cors_allow_origins),
+    allow_origin_regex=settings.cors_allow_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

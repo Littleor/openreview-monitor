@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # Check interval (minutes)
     check_interval: int = 30
 
+    # CORS
+    cors_allow_origins: str = "*"
+    cors_allow_origin_regex: str = ""
+
     # JWT Settings
     secret_key: str = "your-secret-key-change-in-production"
     algorithm: str = "HS256"
