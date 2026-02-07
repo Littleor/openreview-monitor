@@ -179,7 +179,9 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
               </p>
             )}
             <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 p-3 text-xs text-amber-900">
-              添加未知的后端可能会导致泄露您的密钥，推荐使用自建或采用官方的后端，除了自己的后端之外都有泄露风险，风险自担。
+              Adding an unknown backend may expose your credentials. We recommend self-hosting or
+              using the official backend. Any backend other than your own carries leakage risk.
+              Use at your own risk.
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <Button
