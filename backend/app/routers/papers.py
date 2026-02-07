@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
 import re
@@ -17,9 +17,14 @@ from ..services.openreview import OpenReviewService
 from ..services.scheduler import get_email_service
 from ..config import get_settings
 from ..utils.crypto import encrypt_value
+from ..utils.rate_limit import RateLimiter
 
 router = APIRouter(prefix="/api/papers", tags=["papers"])
 settings = get_settings()
+verification_rate_limiter = RateLimiter(
+    settings.email_verification_max_attempts,
+    settings.email_verification_window_seconds
+)
 
 
 def _hash_verification_code(code: str) -> str:
@@ -51,6 +56,15 @@ def extract_paper_id(url: str) -> str:
         return url
 
     raise ValueError("Invalid OpenReview URL or ID")
+
+
+def _get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
 
 
 @router.post("/preview", response_model=PaperPreview)
@@ -101,10 +115,21 @@ async def preview_paper(request: PaperPreviewRequest):
 @router.post("/verify-email", response_model=EmailVerificationResponse)
 async def request_email_verification(
     request: EmailVerificationRequest,
+    http_request: Request,
     db: Session = Depends(get_db)
 ):
     """Send a verification code to confirm subscriber email."""
     now = datetime.utcnow()
+
+    client_ip = _get_client_ip(http_request)
+    blocked, retry_after = verification_rate_limiter.is_blocked(client_ip)
+    if blocked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many verification requests. Try again in {retry_after}s.",
+            headers={"Retry-After": str(retry_after)}
+        )
+    verification_rate_limiter.add_attempt(client_ip)
 
     recent = db.query(EmailVerification).filter(
         EmailVerification.email == request.email,

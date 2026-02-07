@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     # Email verification
     email_verification_ttl_minutes: int = 10
     email_verification_cooldown_seconds: int = 60
+    email_verification_max_attempts: int = 5
+    email_verification_window_seconds: int = 300
 
     # CORS
     cors_allow_origins: str = "*"
