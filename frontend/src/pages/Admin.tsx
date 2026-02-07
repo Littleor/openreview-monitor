@@ -179,7 +179,7 @@ export default function Admin() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.2)_1px,transparent_0)] bg-[size:24px_24px] opacity-30" />
 
         <header className="relative z-10 border-b border-white/60 bg-white/70 backdrop-blur">
-          <div className="container mx-auto flex items-center justify-between px-4 py-4">
+          <div className="container mx-auto flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold">
                 AD
@@ -191,7 +191,7 @@ export default function Admin() {
                 <h1 className="font-display text-lg font-semibold">{t('nav.adminDashboard')}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               <LanguageSwitch />
               {apiInfo && (
                 <span className="hidden items-center rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs text-muted-foreground lg:inline-flex">
