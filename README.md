@@ -72,7 +72,7 @@ cd frontend
 pnpm install  # or npm install
 npm run dev
 ```
-UI runs at `http://localhost:5173`.
+UI runs at `http://localhost:3000` (or `http://localhost:5173` if you change the port).
 
 Optional frontend env:
 - `VITE_OFFICIAL_API_BASE_URL`: The official backend base URL. The UI will append `/api` if missing.
