@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import {
   ApiMode,
@@ -21,6 +21,7 @@ const formatBase = (value: string) => {
 
 export function BackendSelector() {
   const [mode, setMode] = useState<ApiMode>('official')
+  const [selectedMode, setSelectedMode] = useState<ApiMode>('official')
   const [customInput, setCustomInput] = useState('')
   const [activeBase, setActiveBase] = useState('')
   const [officialBase, setOfficialBase] = useState('')
@@ -30,6 +31,7 @@ export function BackendSelector() {
   const refresh = () => {
     const config = getApiConfig()
     setMode(config.mode)
+    setSelectedMode(config.mode)
     setCustomInput(config.customBase)
     setActiveBase(config.base)
     setOfficialBase(config.officialBase)
@@ -41,7 +43,7 @@ export function BackendSelector() {
 
   const normalizedPreview = useMemo(() => normalizeApiBase(customInput), [customInput])
 
-  const handleUseOfficial = () => {
+  const applyOfficial = () => {
     setApiMode('official')
     refresh()
     setError('')
@@ -51,11 +53,11 @@ export function BackendSelector() {
     })
   }
 
-  const handleUseCustom = () => {
+  const applyCustom = () => {
     const normalized = setCustomApiBase(customInput)
     if (!normalized) {
       setError('Enter a valid base URL, for example http://localhost:8000')
-      return
+      return false
     }
     setApiMode('custom')
     setCustomInput(normalized)
@@ -65,58 +67,80 @@ export function BackendSelector() {
       title: 'Using custom backend',
       description: `API base set to ${formatBase(normalized)}`,
     })
+    return true
+  }
+
+  const handleModeChange = (value: string) => {
+    const nextMode = value as ApiMode
+    setSelectedMode(nextMode)
+
+    if (nextMode === 'official') {
+      applyOfficial()
+      return
+    }
+
+    if (normalizeApiBase(customInput)) {
+      applyCustom()
+    } else {
+      setError('Enter a valid base URL to activate the custom backend.')
+    }
   }
 
   return (
-    <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
+    <Card className="border border-white/60 bg-white/80 shadow-lg shadow-slate-900/5 backdrop-blur">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-xl font-semibold font-display">Backend Server</CardTitle>
+        <CardTitle className="text-xl font-semibold font-display">Backend Settings</CardTitle>
         <CardDescription>
-          Switch between the official backend and your own deployment.
+          Choose the backend server for API requests. The monitor works with either option.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button
-            type="button"
-            variant={mode === 'official' ? 'default' : 'outline'}
-            className="justify-start"
-            onClick={handleUseOfficial}
-          >
-            Use Official Backend
-          </Button>
-          <Button
-            type="button"
-            variant={mode === 'custom' ? 'default' : 'outline'}
-            className="justify-start"
-            onClick={handleUseCustom}
-            disabled={!customInput}
-          >
-            Use Custom Backend
-          </Button>
-        </div>
+        <Tabs value={selectedMode} onValueChange={handleModeChange} className="w-full">
+          <TabsList className="w-full justify-between bg-white/70">
+            <TabsTrigger value="official" className="flex-1">
+              Official
+            </TabsTrigger>
+            <TabsTrigger value="custom" className="flex-1">
+              Custom
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        <div className="space-y-2">
-          <Label htmlFor="custom_backend">Custom Backend Base URL</Label>
-          <Input
-            id="custom_backend"
-            value={customInput}
-            onChange={(event) => {
-              setCustomInput(event.target.value)
-              setError('')
-            }}
-            placeholder="https://your-backend.example.com"
-          />
-          <p className="text-xs text-muted-foreground">
-            We will append <span className="font-mono">/api</span> if it is missing.
-          </p>
-          {normalizedPreview && (
+        {selectedMode === 'custom' && (
+          <div className="space-y-2">
+            <Label htmlFor="custom_backend">Custom Backend Base URL</Label>
+            <Input
+              id="custom_backend"
+              value={customInput}
+              onChange={(event) => {
+                setCustomInput(event.target.value)
+                setError('')
+              }}
+              onBlur={() => {
+                if (selectedMode === 'custom') {
+                  applyCustom()
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  applyCustom()
+                }
+              }}
+              placeholder="https://your-backend.example.com"
+            />
             <p className="text-xs text-muted-foreground">
-              Normalized: <span className="font-mono">{normalizedPreview}</span>
+              We will append <span className="font-mono">/api</span> if it is missing. Press Enter or
+              move focus to apply.
             </p>
-          )}
-          {error && <p className="text-xs text-destructive">{error}</p>}
-        </div>
+            {normalizedPreview && (
+              <p className="text-xs text-muted-foreground">
+                Normalized: <span className="font-mono">{normalizedPreview}</span>
+              </p>
+            )}
+            {error && <p className="text-xs text-destructive">{error}</p>}
+          </div>
+        )}
 
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-xs text-muted-foreground">
           <p className="font-medium text-foreground">CORS reminder (important)</p>

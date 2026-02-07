@@ -33,46 +33,48 @@ export default function Home() {
         </header>
 
         <main className="relative z-10 container mx-auto px-4 py-12">
-          <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                OpenReview status radar
-              </div>
-              <div className="space-y-4">
-                <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-                  Know the moment reviews land.
-                </h2>
-                <p className="text-lg text-muted-foreground">
-                  Track OpenReview submissions, collect review updates, and get email alerts the
-                  second a decision drops.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">No browser extension</span>
-                <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Review and decision alerts</span>
-                <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Works with private papers</span>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
-                  <h3 className="font-display text-lg">Smarter checking</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    We check when conferences usually release results, so you get alerts without spam.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
-                  <h3 className="font-display text-lg">Full review detail</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Scores, confidence, strengths, and weaknesses are sent straight to your inbox.
-                  </p>
-                </div>
-              </div>
+          <section className="mx-auto max-w-4xl text-center space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              OpenReview status radar
             </div>
+            <div className="space-y-4">
+              <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+                Know the moment reviews land.
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Track OpenReview submissions, collect review updates, and get email alerts the
+                second a decision drops.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">No browser extension</span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Review and decision alerts</span>
+              <span className="rounded-full border border-white/70 bg-white/70 px-3 py-1">Works with private papers</span>
+            </div>
+          </section>
 
-            <div className="space-y-6">
+          <section className="mt-10 flex justify-center">
+            <PaperForm />
+          </section>
+
+          <section className="mt-6 flex justify-center">
+            <div className="w-full max-w-xl">
               <BackendSelector />
-              <PaperForm />
+            </div>
+          </section>
+
+          <section className="mt-12 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
+              <h3 className="font-display text-lg">Smarter checking</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                We check when conferences usually release results, so you get alerts without spam.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-lg shadow-slate-900/5">
+              <h3 className="font-display text-lg">Full review detail</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Scores, confidence, strengths, and weaknesses are sent straight to your inbox.
+              </p>
             </div>
           </section>
 
