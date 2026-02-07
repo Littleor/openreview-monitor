@@ -424,6 +424,9 @@ const interpolate = (template: string, vars?: Record<string, string | number>) =
 
 const getDefaultLocale = (): Locale => {
   if (typeof window === 'undefined') return 'en'
+  const params = new URLSearchParams(window.location.search)
+  const param = params.get('lang')
+  if (param === 'en' || param === 'zh') return param
   const stored = window.localStorage.getItem('locale')
   if (stored === 'en' || stored === 'zh') return stored
   const nav = window.navigator.language.toLowerCase()

@@ -33,7 +33,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">OpenReview</p>
-                <h1 className="font-display text-lg font-semibold">{t('brand.monitor')}</h1>
+                <p className="font-display text-lg font-semibold">{t('brand.monitor')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -76,9 +76,9 @@ export default function Home() {
               {t('home.hero.badge')}
             </div>
             <div className="space-y-4">
-              <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+              <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
                 {t('home.hero.title')}
-              </h2>
+              </h1>
               <p className="text-lg text-muted-foreground">
                 {t('home.hero.subtitle')}
               </p>
