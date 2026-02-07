@@ -108,7 +108,7 @@ export function PaperForm() {
       title: preview.title || preview.openreview_id,
       venue: preview.venue || 'Unknown',
       email: formData.email,
-      verification_code: verificationCode,
+      verification_code: verificationCode.trim(),
       openreview_username: formData.openreview_username || undefined,
       openreview_password: formData.openreview_password || undefined,
       notify_on_review: formData.notify_on_review,
