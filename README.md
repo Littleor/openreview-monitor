@@ -61,9 +61,14 @@ cd backend
 cp .env.example .env
 # Edit .env with your SMTP settings and Admin password
 uv sync
-uv run uvicorn app.main:app --reload
+uv run python -m app.server --reload
 ```
-Server runs at `http://localhost:8000`.
+Server runs at `http://0.0.0.0:8000` by default.
+
+Optional startup flags:
+```bash
+uv run python -m app.server --host 0.0.0.0 --port 8001 --db-path ./data/monitor.db
+```
 
 ### 2. Frontend Setup
 
@@ -111,12 +116,15 @@ Configure `backend/.env`:
 |----------|-------------|---------|
 | `ADMIN_PASSWORD` | Admin dashboard password | `admin` |
 | `DATABASE_URL` | Database path | `sqlite:///./openreview_monitor.db` |
+| `DB_PATH` | SQLite DB file path (used if `DATABASE_URL` not set) | - |
 | `SMTP_HOST` | Email SMTP host | `smtp.gmail.com` |
 | `SMTP_PORT` | Email SMTP port | `587` |
 | `SMTP_USER` | Email username | - |
 | `SMTP_PASSWORD` | Email password (use App Password for Gmail) | - |
 | `CHECK_INTERVAL` | Check interval in minutes | `30` |
 | `CORS_ALLOW_ORIGINS` | CORS allowlist (comma-separated, `*` to allow all) | `*` |
+| `APP_HOST` | Server bind host (used by `python -m app.server`) | `0.0.0.0` |
+| `APP_PORT` | Server bind port (used by `python -m app.server`) | `8000` |
 
 ## License
 

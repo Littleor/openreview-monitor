@@ -80,9 +80,14 @@ vim .env
 uv sync
 
 # 启动开发服务器
-uv run uvicorn app.main:app --reload
+uv run python -m app.server --reload
 ```
-后端服务将在 `http://localhost:8000` 启动。
+后端服务默认在 `http://0.0.0.0:8000` 启动。
+
+可选启动参数：
+```bash
+uv run python -m app.server --host 0.0.0.0 --port 8001 --db-path ./data/monitor.db
+```
 
 ### 2. 前端设置
 
@@ -145,12 +150,15 @@ npm run dev
 |--------|------|--------|------|
 | `ADMIN_PASSWORD` | 管理后台登录密码 | `admin` | **生产环境务必修改** |
 | `DATABASE_URL` | 数据库连接字符串 | `sqlite:///./openreview_monitor.db` | 默认使用 SQLite 文件 |
+| `DB_PATH` | SQLite 数据库文件路径（仅当 `DATABASE_URL` 未设置时生效） | - | |
 | `SMTP_HOST` | 邮件服务器地址 | `smtp.gmail.com` | Gmail 示例 |
 | `SMTP_PORT` | 邮件服务器端口 | `587` | 通常为 587 (TLS) |
 | `SMTP_USER` | 发件人邮箱账号 | - | |
 | `SMTP_PASSWORD` | 发件人邮箱密码/应用授权码 | - | Gmail 需使用应用专用密码 |
 | `CHECK_INTERVAL` | 自动检查间隔（分钟） | `30` | 建议不低于 10 分钟 |
 | `CORS_ALLOW_ORIGINS` | CORS 允许的域名列表（逗号分隔，`*` 表示全部） | `*` | |
+| `APP_HOST` | 后端绑定地址（`python -m app.server` 使用） | `0.0.0.0` | |
+| `APP_PORT` | 后端端口（`python -m app.server` 使用） | `8000` | |
 
 ## 常见问题
 
