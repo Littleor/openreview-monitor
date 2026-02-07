@@ -41,7 +41,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   }
 
   return (
-    <Card className="w-full max-w-md border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+    <Card className="w-full max-w-md border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
       <CardHeader className="space-y-2 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <Lock className="h-6 w-6 text-primary" />

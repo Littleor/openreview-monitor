@@ -217,7 +217,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="subscribers">
-            <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+            <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
               <CardHeader>
                 <CardTitle className="font-display">Subscribers</CardTitle>
                 <CardDescription>
@@ -312,7 +312,7 @@ export default function Admin() {
 
           <TabsContent value="config">
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+              <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
                 <CardHeader>
                   <CardTitle className="font-display">System Configuration</CardTitle>
                 </CardHeader>
@@ -411,7 +411,7 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+              <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
                 <CardHeader>
                   <CardTitle className="font-display">Test Email</CardTitle>
                   <CardDescription>

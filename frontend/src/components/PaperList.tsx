@@ -93,7 +93,7 @@ export function PaperList({ onRefresh }: PaperListProps) {
   }
 
   return (
-    <Card className="border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+    <Card className="border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="font-display">Monitored Papers</CardTitle>
         <div className="flex gap-2">

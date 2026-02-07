@@ -95,7 +95,7 @@ export function PaperForm() {
   // Step 1: Input form
   if (step === 'input') {
     return (
-      <Card className="w-full max-w-xl border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+      <Card className="w-full max-w-xl border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl font-semibold font-display">Monitor a Paper</CardTitle>
@@ -189,7 +189,7 @@ export function PaperForm() {
   // Step 2: Preview and confirm
   if (step === 'preview' && preview) {
     return (
-      <Card className="w-full max-w-xl border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+      <Card className="w-full max-w-xl border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -291,7 +291,7 @@ export function PaperForm() {
 
   // Step 3: Success
   return (
-    <Card className="w-full max-w-xl border border-white/60 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur">
+    <Card className="w-full max-w-xl border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
       <CardContent className="pt-6">
         <div className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
