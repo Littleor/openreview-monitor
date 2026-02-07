@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from .database import init_db
-from .routers import papers, admin, subscribers
+from .routers import papers, admin, subscribers, public
 from .services.scheduler import start_scheduler, stop_scheduler
 from .config import get_settings
 
@@ -63,6 +63,7 @@ app.add_middleware(
 app.include_router(papers.router)
 app.include_router(admin.router)
 app.include_router(subscribers.router)
+app.include_router(public.router)
 
 
 @app.get("/")

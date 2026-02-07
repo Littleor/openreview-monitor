@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Check interval (minutes)
     check_interval: int = 30
 
+    # Email verification
+    email_verification_ttl_minutes: int = 10
+    email_verification_cooldown_seconds: int = 60
+
     # CORS
     cors_allow_origins: str = "*"
     cors_allow_origin_regex: str = ""

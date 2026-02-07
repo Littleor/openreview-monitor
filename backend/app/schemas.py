@@ -25,11 +25,22 @@ class PaperCreate(BaseModel):
     title: str
     venue: str
     email: EmailStr
+    verification_code: str
     openreview_username: Optional[str] = None
     openreview_password: Optional[str] = None
     notify_on_review: bool = True
     notify_on_review_modified: bool = True
     notify_on_decision: bool = True
+
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    openreview_id: str
+
+
+class EmailVerificationResponse(BaseModel):
+    message: str
+    expires_in_minutes: int
 
 
 class PaperResponse(BaseModel):
@@ -108,6 +119,10 @@ class ConfigResponse(BaseModel):
     smtp_host: str
     smtp_port: int
     smtp_user: str
+    from_email: str
+
+
+class PublicEmailConfig(BaseModel):
     from_email: str
 
 

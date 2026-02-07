@@ -45,6 +45,19 @@ class Subscriber(Base):
     paper = relationship("Paper", back_populates="subscribers")
 
 
+class EmailVerification(Base):
+    """Email verification codes for subscriber confirmation."""
+    __tablename__ = "email_verifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), index=True, nullable=False)
+    openreview_id = Column(String(255), index=True, nullable=False)
+    code_hash = Column(String(128), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Config(Base):
     """System configuration storage."""
     __tablename__ = "config"

@@ -2,16 +2,35 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import re
+import secrets
+import hashlib
+import hmac
+from datetime import datetime, timedelta
 
 from ..database import get_db
-from ..models import Paper, Subscriber
+from ..models import Paper, Subscriber, EmailVerification
 from ..schemas import (
     PaperCreate, PaperResponse, PaperStatusResponse, MessageResponse,
-    PaperPreview, PaperPreviewRequest
+    PaperPreview, PaperPreviewRequest, EmailVerificationRequest, EmailVerificationResponse
 )
 from ..services.openreview import OpenReviewService
+from ..services.scheduler import get_email_service
+from ..config import get_settings
 
 router = APIRouter(prefix="/api/papers", tags=["papers"])
+settings = get_settings()
+
+
+def _hash_verification_code(code: str) -> str:
+    return hmac.new(
+        settings.secret_key.encode("utf-8"),
+        code.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+
+def _generate_verification_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
 
 
 def extract_paper_id(url: str) -> str:
@@ -78,6 +97,109 @@ async def preview_paper(request: PaperPreviewRequest):
         )
 
 
+@router.post("/verify-email", response_model=EmailVerificationResponse)
+async def request_email_verification(
+    request: EmailVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """Send a verification code to confirm subscriber email."""
+    now = datetime.utcnow()
+
+    recent = db.query(EmailVerification).filter(
+        EmailVerification.email == request.email,
+        EmailVerification.openreview_id == request.openreview_id
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if recent:
+        cooldown = settings.email_verification_cooldown_seconds
+        seconds_since = (now - recent.created_at).total_seconds()
+        if seconds_since < cooldown:
+            wait_seconds = int(cooldown - seconds_since)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {wait_seconds}s before requesting another code."
+            )
+
+    db.query(EmailVerification).filter(
+        EmailVerification.email == request.email,
+        EmailVerification.openreview_id == request.openreview_id,
+        EmailVerification.used_at.is_(None)
+    ).update(
+        {"used_at": now},
+        synchronize_session=False
+    )
+
+    code = _generate_verification_code()
+    expires_at = now + timedelta(minutes=settings.email_verification_ttl_minutes)
+
+    verification = EmailVerification(
+        email=request.email,
+        openreview_id=request.openreview_id,
+        code_hash=_hash_verification_code(code),
+        expires_at=expires_at,
+        used_at=None
+    )
+    db.add(verification)
+    db.commit()
+
+    try:
+        email_service = get_email_service()
+        await email_service.send_verification_code(
+            to_email=request.email,
+            code=code,
+            openreview_id=request.openreview_id,
+            expires_in_minutes=settings.email_verification_ttl_minutes
+        )
+    except ValueError as e:
+        verification.used_at = now
+        db.commit()
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        verification.used_at = now
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Failed to send verification email: {str(e)}")
+
+    return EmailVerificationResponse(
+        message=f"Verification code sent to {request.email}",
+        expires_in_minutes=settings.email_verification_ttl_minutes
+    )
+
+
+def _require_valid_verification(
+    db: Session,
+    email: str,
+    openreview_id: str,
+    code: str
+) -> EmailVerification:
+    now = datetime.utcnow()
+    if not code:
+        raise HTTPException(
+            status_code=400,
+            detail="Verification code is required. Please request a code first."
+        )
+
+    verification = db.query(EmailVerification).filter(
+        EmailVerification.email == email,
+        EmailVerification.openreview_id == openreview_id,
+        EmailVerification.used_at.is_(None),
+        EmailVerification.expires_at > now
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if not verification:
+        raise HTTPException(
+            status_code=400,
+            detail="Verification code expired or not found. Please request a new code."
+        )
+
+    expected_hash = _hash_verification_code(code)
+    if not hmac.compare_digest(expected_hash, verification.code_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid verification code. Please check the code and try again."
+        )
+
+    return verification
+
 @router.post("", response_model=MessageResponse)
 async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
     """Add a confirmed paper to monitor."""
@@ -100,6 +222,13 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
                 detail="This email is already subscribed to this paper"
             )
 
+        verification = _require_valid_verification(
+            db=db,
+            email=paper_data.email,
+            openreview_id=paper_data.openreview_id,
+            code=paper_data.verification_code
+        )
+
         # Add new subscriber to existing paper
         subscriber = Subscriber(
             paper_id=existing_paper.id,
@@ -109,12 +238,20 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
             notify_on_decision=paper_data.notify_on_decision
         )
         db.add(subscriber)
+        verification.used_at = datetime.utcnow()
         db.commit()
 
         return MessageResponse(
             message=f"Successfully subscribed to: {existing_paper.title}",
             success=True
         )
+
+    verification = _require_valid_verification(
+        db=db,
+        email=paper_data.email,
+        openreview_id=paper_data.openreview_id,
+        code=paper_data.verification_code
+    )
 
     # Create new paper with confirmed info
     paper = Paper(
@@ -138,6 +275,7 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         notify_on_decision=paper_data.notify_on_decision
     )
     db.add(subscriber)
+    verification.used_at = datetime.utcnow()
     db.commit()
 
     return MessageResponse(

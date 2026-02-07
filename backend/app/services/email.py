@@ -209,6 +209,44 @@ class EmailService:
         </html>
         """
 
+    def _render_verification_template(
+        self,
+        code: str,
+        openreview_id: str,
+        expires_in_minutes: int,
+    ) -> str:
+        """Render email template for verification code."""
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }}
+                .content {{ background: #fff; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; text-align: center; }}
+                .code {{ font-size: 32px; letter-spacing: 6px; font-weight: 700; background: #f1f5f9; padding: 12px 18px; border-radius: 10px; display: inline-block; margin: 12px 0; }}
+                .meta {{ color: #6b7280; font-size: 13px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2 style="margin: 0;">OpenReview Monitor</h2>
+                    <p style="margin: 6px 0 0 0; font-size: 14px;">Email verification</p>
+                </div>
+                <div class="content">
+                    <p>Use the code below to verify your email for paper:</p>
+                    <p class="meta">{openreview_id}</p>
+                    <div class="code">{code}</div>
+                    <p class="meta">This code expires in {expires_in_minutes} minutes.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
     def _send_email_sync(self, msg: MIMEMultipart) -> None:
         """Send an email message synchronously (blocking)."""
         if not self.smtp_user or not self.smtp_password:
@@ -297,6 +335,34 @@ class EmailService:
 
         await self._send_email_async(msg)
         logger.info(f"Sent test email to {to_email}")
+        return True
+
+    async def send_verification_code(
+        self,
+        to_email: str,
+        code: str,
+        openreview_id: str,
+        expires_in_minutes: int,
+    ) -> bool:
+        """Send an email verification code asynchronously."""
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "[OpenReview Monitor] Verification Code"
+        msg["From"] = self.from_email
+        msg["To"] = to_email
+
+        text_content = (
+            "OpenReview Monitor email verification\n\n"
+            f"Paper: {openreview_id}\n"
+            f"Verification code: {code}\n"
+            f"This code expires in {expires_in_minutes} minutes."
+        )
+        html_content = self._render_verification_template(code, openreview_id, expires_in_minutes)
+
+        msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
+
+        await self._send_email_async(msg)
+        logger.info(f"Sent verification code to {to_email}")
         return True
 
     def send_review_notification(
