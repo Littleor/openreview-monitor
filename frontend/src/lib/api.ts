@@ -12,13 +12,12 @@ async function fetchApi<T>(
 ): Promise<ApiResponse<T>> {
   try {
     const token = localStorage.getItem('admin_token');
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const headers = new Headers(options.headers);
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
     // Create abort controller for timeout

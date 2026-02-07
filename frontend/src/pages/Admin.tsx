@@ -8,14 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { AdminLogin } from '@/components/AdminLogin'
 import { PaperList } from '@/components/PaperList'
-import { api, Subscriber, Config, ConfigUpdate } from '@/lib/api'
+import { api, Subscriber, ConfigUpdate } from '@/lib/api'
 import { getApiConfig } from '@/lib/apiBase'
 import { Home, LogOut, Trash2, Save, Loader2, Mail, MailCheck, Bell, RotateCcw } from 'lucide-react'
 
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
-  const [config, setConfig] = useState<Config | null>(null)
   const [configForm, setConfigForm] = useState<ConfigUpdate>({})
   const [loading, setLoading] = useState(false)
   const [testEmail, setTestEmail] = useState('')
@@ -42,7 +41,6 @@ export default function Admin() {
       setSubscribers(subsResult.data)
     }
     if (configResult.data) {
-      setConfig(configResult.data)
       setConfigForm({
         check_interval: configResult.data.check_interval,
         smtp_host: configResult.data.smtp_host,

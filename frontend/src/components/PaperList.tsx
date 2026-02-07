@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { api, Paper } from '@/lib/api'
-import { Trash2, ExternalLink, RefreshCw, Mail, MailCheck, Bell, BellOff } from 'lucide-react'
+import { Trash2, ExternalLink, RefreshCw, MailCheck, Bell } from 'lucide-react'
 
 interface PaperListProps {
   onRefresh?: () => void

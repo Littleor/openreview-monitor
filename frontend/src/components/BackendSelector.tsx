@@ -18,6 +18,8 @@ type BackendSelectorProps = {
   onChange?: (config: ReturnType<typeof getApiConfig>) => void
 }
 
+type HealthCheckResult = { ok: true } | { ok: false; message: string }
+
 const formatBase = (value: string) => {
   if (value.startsWith('/')) {
     return `Same origin (${value})`
@@ -78,7 +80,7 @@ export function BackendSelector({ onChange }: BackendSelectorProps) {
     return true
   }
 
-  const checkBackendHealth = async (base: string) => {
+  const checkBackendHealth = async (base: string): Promise<HealthCheckResult> => {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 8000)
 
