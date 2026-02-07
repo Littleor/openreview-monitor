@@ -2,6 +2,7 @@ import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
 from typing import Dict, List, Optional
 import logging
 import asyncio
@@ -24,13 +25,20 @@ class EmailService:
         smtp_user: str,
         smtp_password: str,
         from_email: str,
+        from_name: str,
         timeout: int = 15  # 15 second timeout for faster feedback
     ):
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
         self.smtp_user = smtp_user
         self.smtp_password = smtp_password
-        self.from_email = from_email
+        self.from_email = (from_email or "").strip()
+        self.from_name = (from_name or "").strip()
+        self.from_header = (
+            formataddr((self.from_name, self.from_email))
+            if self.from_name
+            else self.from_email
+        )
         self.timeout = timeout
 
     def _render_review_template(
@@ -313,7 +321,7 @@ class EmailService:
         """Send a test email synchronously."""
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "[OpenReview Monitor] Test Email"
-        msg["From"] = self.from_email
+        msg["From"] = self.from_header
         msg["To"] = to_email
 
         html_content = self._render_test_template()
@@ -327,7 +335,7 @@ class EmailService:
         """Send a test email asynchronously."""
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "[OpenReview Monitor] Test Email"
-        msg["From"] = self.from_email
+        msg["From"] = self.from_header
         msg["To"] = to_email
 
         html_content = self._render_test_template()
@@ -347,7 +355,7 @@ class EmailService:
         """Send an email verification code asynchronously."""
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "[OpenReview Monitor] Verification Code"
-        msg["From"] = self.from_email
+        msg["From"] = self.from_header
         msg["To"] = to_email
 
         text_content = (
@@ -377,7 +385,7 @@ class EmailService:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = f"[{venue or 'OpenReview'}] Reviews available: {paper_title or paper_id}"
-            msg["From"] = self.from_email
+            msg["From"] = self.from_header
             msg["To"] = to_email
 
             html_content = self._render_review_template(paper_title, paper_id, venue, reviews)
@@ -404,7 +412,7 @@ class EmailService:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = f"[{venue or 'OpenReview'}] Decision: {decision} - {paper_title or paper_id}"
-            msg["From"] = self.from_email
+            msg["From"] = self.from_header
             msg["To"] = to_email
 
             html_content = self._render_decision_template(
@@ -501,7 +509,7 @@ class EmailService:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = f"[{venue or 'OpenReview'}] Reviews Modified: {paper_title or paper_id}"
-            msg["From"] = self.from_email
+            msg["From"] = self.from_header
             msg["To"] = to_email
 
             html_content = self._render_review_modified_template(

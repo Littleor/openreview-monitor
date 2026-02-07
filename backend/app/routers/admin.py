@@ -168,16 +168,21 @@ async def get_config(
     _: bool = Depends(get_current_admin)
 ):
     """Get system configuration."""
-    def get_config_value(key: str, default: str) -> str:
+    def get_config_value(key: str, default: str, allow_empty: bool = True) -> str:
         config = db.query(Config).filter(Config.key == key).first()
-        return config.value if config else default
+        if not config or config.value is None:
+            return default
+        if not allow_empty and not config.value.strip():
+            return default
+        return config.value
 
     return ConfigResponse(
         check_interval=int(get_config_value("check_interval", str(settings.check_interval))),
         smtp_host=get_config_value("smtp_host", settings.smtp_host),
         smtp_port=int(get_config_value("smtp_port", str(settings.smtp_port))),
         smtp_user=get_config_value("smtp_user", settings.smtp_user),
-        from_email=get_config_value("from_email", settings.from_email)
+        from_email=get_config_value("from_email", settings.from_email),
+        from_name=get_config_value("from_name", settings.from_name, allow_empty=False)
     )
 
 
@@ -208,6 +213,8 @@ async def update_config(
         set_config_value("smtp_password", config_data.smtp_password)
     if config_data.from_email is not None:
         set_config_value("from_email", config_data.from_email)
+    if config_data.from_name is not None:
+        set_config_value("from_name", config_data.from_name)
 
     db.commit()
 

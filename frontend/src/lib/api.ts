@@ -123,6 +123,7 @@ export interface Config {
   smtp_port: number;
   smtp_user: string;
   from_email: string;
+  from_name: string;
 }
 
 export interface ConfigUpdate {
@@ -132,10 +133,12 @@ export interface ConfigUpdate {
   smtp_user?: string;
   smtp_password?: string;
   from_email?: string;
+  from_name?: string;
 }
 
 export interface PublicEmailConfig {
   from_email: string;
+  from_name: string;
 }
 
 export const api = {

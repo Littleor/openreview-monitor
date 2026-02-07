@@ -111,6 +111,7 @@ class ConfigUpdate(BaseModel):
     smtp_user: Optional[str] = None
     smtp_password: Optional[str] = None
     from_email: Optional[str] = None
+    from_name: Optional[str] = None
 
 
 class ConfigResponse(BaseModel):
@@ -119,10 +120,12 @@ class ConfigResponse(BaseModel):
     smtp_port: int
     smtp_user: str
     from_email: str
+    from_name: str
 
 
 class PublicEmailConfig(BaseModel):
     from_email: str
+    from_name: str
 
 
 class TestEmailRequest(BaseModel):

@@ -17,6 +17,7 @@ export function PaperForm() {
   const [preview, setPreview] = useState<PaperPreview | null>(null)
   const [showCredentials, setShowCredentials] = useState(false)
   const [senderEmail, setSenderEmail] = useState<string | null>(null)
+  const [senderName, setSenderName] = useState<string | null>(null)
   const [verificationCode, setVerificationCode] = useState('')
   const [verificationSent, setVerificationSent] = useState(false)
   const [verificationSending, setVerificationSending] = useState(false)
@@ -40,7 +41,14 @@ export function PaperForm() {
     api.getPublicEmailConfig().then((result) => {
       if (!active) return
       const email = result.data?.from_email?.trim()
-      setSenderEmail(email ? email : null)
+      const name = result.data?.from_name?.trim()
+      if (email) {
+        setSenderEmail(email)
+        setSenderName(name ? name : null)
+      } else {
+        setSenderEmail(null)
+        setSenderName(null)
+      }
     })
     return () => {
       active = false
@@ -301,7 +309,9 @@ export function PaperForm() {
             {senderEmail ? (
               <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs text-emerald-900">
                 {t('paperForm.info.senderConfigured.prefix')}
-                <span className="font-semibold">{senderEmail}</span>
+                <span className="font-semibold">
+                  {senderName ? `${senderName} <${senderEmail}>` : senderEmail}
+                </span>
                 {t('paperForm.info.senderConfigured.suffix')}
               </div>
             ) : (
@@ -433,7 +443,7 @@ export function PaperForm() {
           {senderEmail && (
             <p className="text-xs text-muted-foreground">
               {t('paperForm.success.sender.prefix')}
-              <strong>{senderEmail}</strong>
+              <strong>{senderName ? `${senderName} <${senderEmail}>` : senderEmail}</strong>
               {t('paperForm.success.sender.suffix')}
             </p>
           )}

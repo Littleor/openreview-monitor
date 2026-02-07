@@ -50,6 +50,7 @@ export default function Admin() {
         smtp_port: configResult.data.smtp_port,
         smtp_user: configResult.data.smtp_user,
         from_email: configResult.data.from_email,
+        from_name: configResult.data.from_name,
       })
     }
   }
@@ -422,6 +423,17 @@ export default function Admin() {
                               value={configForm.from_email || ''}
                               onChange={(e) =>
                                 setConfigForm({ ...configForm, from_email: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="from_name">{t('admin.config.smtp.fromName')}</Label>
+                            <Input
+                              id="from_name"
+                              placeholder={t('admin.config.smtp.fromName.placeholder')}
+                              value={configForm.from_name || ''}
+                              onChange={(e) =>
+                                setConfigForm({ ...configForm, from_name: e.target.value })
                               }
                             />
                           </div>

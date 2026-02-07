@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     from_email: str = ""
+    from_name: str = "OpenReview Monitor"
 
     # Check interval (minutes)
     check_interval: int = 30

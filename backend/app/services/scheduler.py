@@ -24,12 +24,18 @@ def get_email_service() -> EmailService:
             config = db.query(Config).filter(Config.key == key).first()
             return config.value if config else default
 
+        from_name = get_config_value("from_name", settings.from_name)
+        from_name = from_name.strip() if from_name else ""
+        if not from_name:
+            from_name = settings.from_name
+
         return EmailService(
             smtp_host=get_config_value("smtp_host", settings.smtp_host),
             smtp_port=int(get_config_value("smtp_port", str(settings.smtp_port))),
             smtp_user=get_config_value("smtp_user", settings.smtp_user),
             smtp_password=get_config_value("smtp_password", settings.smtp_password),
             from_email=get_config_value("from_email", settings.from_email),
+            from_name=from_name,
         )
     finally:
         db.close()
