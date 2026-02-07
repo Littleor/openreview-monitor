@@ -1,5 +1,7 @@
 # Development Guide
 
+[中文](development_zh.md)
+
 This document covers local development for both backend and frontend.
 
 ## Prerequisites

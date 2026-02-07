@@ -1,57 +1,97 @@
-# 自建后端部署指南
+# Backend Deployment Guide
 
-本文档说明如何在服务器上部署 OpenReview Monitor 后端，以及如何让前端切换到自建后端。
+[中文](backend_deploy_zh.md)
 
-## 1. 部署步骤（后端）
+This guide explains how to run the OpenReview Monitor backend on your laptop, a private network, or a public server, and how to point the frontend to it.
 
-### 1.1 准备环境
-- 一台可以运行服务的机器（本机 / 内网 / 公网均可）
+## When to Self-host
+- You want to use your own SMTP / sender domain.
+- You plan to enter OpenReview credentials and want to keep them under your control.
+- You want to share one backend with a lab/team.
+
+## Prerequisites
 - Python 3.10+
-- `uv`（推荐的 Python 包管理器）
+- `uv`
 
-### 1.2 拉取代码
-```bash
-git clone <your-repo-url> openreview-monitor
-cd openreview-monitor/backend
-```
+## Configure the Backend
+From the repo root:
 
-### 1.3 配置环境变量
 ```bash
+cd backend
 cp .env.example .env
 ```
 
-编辑 `backend/.env`，重点关注以下配置：
+Minimal configuration (example):
 
-- `ADMIN_PASSWORD`: 管理后台登录密码（生产环境务必修改）
-- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `FROM_EMAIL`: 邮件发送配置（必须）
-- `CHECK_INTERVAL`: 后台检查间隔（分钟）
-- `DATABASE_URL` 或 `DB_PATH`: 数据库地址。推荐使用绝对路径，例如 `DATABASE_URL=sqlite:////var/lib/openreview/openreview_monitor.db`。
-- `CORS_ALLOW_ORIGINS`: 允许前端访问的域名（逗号分隔）。例如 `CORS_ALLOW_ORIGINS=https://your-frontend.com`。
-- `APP_HOST` / `APP_PORT`: 后端监听地址与端口
-- `SECRET_KEY`: JWT 加密密钥（建议生产环境设置）
+```bash
+ADMIN_PASSWORD=change-me
+SECRET_KEY=change-me-too
 
-> 提示：`python -m app.server` 启动时会优先使用 `DATABASE_URL`，如果未设置才使用 `DB_PATH`。
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_user@example.com
+SMTP_PASSWORD=your_smtp_password
+FROM_EMAIL=your_user@example.com
 
-### 1.4 安装依赖
+CHECK_INTERVAL=30
+
+# Use an absolute path so data persists across restarts
+DATABASE_URL=sqlite:////var/lib/openreview-monitor/openreview_monitor.db
+
+# If you use the hosted frontend, include its origin here (avoid * in production)
+CORS_ALLOW_ORIGINS=https://openreview-monitor.vercel.app
+```
+
+Notes:
+- `ADMIN_PASSWORD` is used to login to `/admin`. Change it in production.
+- `SECRET_KEY` is used to sign JWTs. Change it in production.
+- Prefer a persistent `DATABASE_URL` path for long-running deployments.
+- Keep `CORS_ALLOW_ORIGINS` as an allowlist in production.
+
+## Run the Backend
+Install dependencies:
+
 ```bash
 uv sync
 ```
 
-### 1.5 启动服务
+Start the server (recommended launcher supports `--db-path` / `--database-url` flags):
+
 ```bash
 uv run python -m app.server --host 0.0.0.0 --port 8000
 ```
 
-服务启动后可通过以下地址检查健康状态：
-- `http://<your-server>:8000/health`
-- `http://<your-server>:8000/api/health`
+Health checks:
+- `http://<host>:8000/health`
+- `http://<host>:8000/api/health`
 
-说明:
-- 如果你在本机或内网部署，前端也需要在同一网络内访问该地址。
-- 如果你希望在公网访问，请为该服务配置公网可达的域名或 IP。
+## Point the Frontend to Your Backend
+Option A (recommended): in the UI, open `Backend Settings`:
+1. Select `Custom`
+2. Enter your backend base URL (for example `http://localhost:8000` or `https://your-backend.example.com`)
+3. Confirm (the UI appends `/api` and runs a health check)
 
-### 1.6 （可选）使用 systemd 守护进程
-如果希望服务开机自启，可以使用 systemd 管理：
+Option B: hardcode the official backend base URL at build time:
+
+```bash
+VITE_OFFICIAL_API_BASE_URL=https://your-backend.example.com
+```
+
+Then rebuild the frontend.
+
+## HTTPS (Recommended for LAN/Public)
+If your frontend is served over HTTPS (for example on Vercel), browsers will usually block requests to a LAN/public `http://` backend (mixed content). Put the backend behind HTTPS, or run the frontend locally.
+
+Minimal Caddy config (automatic TLS):
+
+```caddyfile
+your-backend.example.com {
+  reverse_proxy 127.0.0.1:8000
+}
+```
+
+## systemd (Optional)
+Example service unit:
 
 ```ini
 [Unit]
@@ -69,30 +109,10 @@ EnvironmentFile=/opt/openreview-monitor/backend/.env
 WantedBy=multi-user.target
 ```
 
-## 2. 前端切换到自建后端
+## FAQ
+**CORS errors in the frontend?**  
+Add your frontend origin to `CORS_ALLOW_ORIGINS`, for example:
 
-有两种方式：
-
-### 方式 A：前端界面切换（推荐）
-在前端页面中打开 `Backend Settings`：
-1. 选择 `Custom`
-2. 输入自建后端地址，例如 `https://your-backend.com`
-3. 点击 `Confirm`
-
-系统会自动补全 `/api` 并执行健康检查。
-
-### 方式 B：通过环境变量固定后端
-在前端构建时设置：
-```
-VITE_OFFICIAL_API_BASE_URL=https://your-backend.com
-```
-
-然后重新构建前端。此时 `Official` 模式会默认使用该地址。
-
-## 3. 常见问题
-
-**Q: 前端报跨域错误怎么办？**  
-A: 在后端 `.env` 中设置 `CORS_ALLOW_ORIGINS`，把前端域名加进去，例如：
-```
-CORS_ALLOW_ORIGINS=https://your-frontend.com,https://openreview-monitor.vercel.app
+```bash
+CORS_ALLOW_ORIGINS=https://openreview-monitor.vercel.app,http://localhost:3000
 ```
