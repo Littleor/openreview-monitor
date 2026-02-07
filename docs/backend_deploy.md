@@ -5,7 +5,7 @@
 ## 1. 部署步骤（后端）
 
 ### 1.1 准备环境
-- 一台可访问公网的服务器
+- 一台可以运行服务的机器（本机 / 内网 / 公网均可）
 - Python 3.10+
 - `uv`（推荐的 Python 包管理器）
 
@@ -25,10 +25,8 @@ cp .env.example .env
 - `ADMIN_PASSWORD`: 管理后台登录密码（生产环境务必修改）
 - `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `FROM_EMAIL`: 邮件发送配置（必须）
 - `CHECK_INTERVAL`: 后台检查间隔（分钟）
-- `DATABASE_URL` 或 `DB_PATH`: 数据库地址
-  - 推荐使用绝对路径，例如 `DATABASE_URL=sqlite:////var/lib/openreview/openreview_monitor.db`
-- `CORS_ALLOW_ORIGINS`: 允许前端访问的域名（逗号分隔）
-  - 例如 `CORS_ALLOW_ORIGINS=https://your-frontend.com`
+- `DATABASE_URL` 或 `DB_PATH`: 数据库地址。推荐使用绝对路径，例如 `DATABASE_URL=sqlite:////var/lib/openreview/openreview_monitor.db`。
+- `CORS_ALLOW_ORIGINS`: 允许前端访问的域名（逗号分隔）。例如 `CORS_ALLOW_ORIGINS=https://your-frontend.com`。
 - `APP_HOST` / `APP_PORT`: 后端监听地址与端口
 - `SECRET_KEY`: JWT 加密密钥（建议生产环境设置）
 
@@ -47,6 +45,10 @@ uv run python -m app.server --host 0.0.0.0 --port 8000
 服务启动后可通过以下地址检查健康状态：
 - `http://<your-server>:8000/health`
 - `http://<your-server>:8000/api/health`
+
+说明:
+- 如果你在本机或内网部署，前端也需要在同一网络内访问该地址。
+- 如果你希望在公网访问，请为该服务配置公网可达的域名或 IP。
 
 ### 1.6 （可选）使用 systemd 守护进程
 如果希望服务开机自启，可以使用 systemd 管理：
@@ -92,5 +94,5 @@ VITE_OFFICIAL_API_BASE_URL=https://your-backend.com
 **Q: 前端报跨域错误怎么办？**  
 A: 在后端 `.env` 中设置 `CORS_ALLOW_ORIGINS`，把前端域名加进去，例如：
 ```
-CORS_ALLOW_ORIGINS=https://your-frontend.com
+CORS_ALLOW_ORIGINS=https://your-frontend.com,https://openreview-monitor.vercel.app
 ```
