@@ -50,17 +50,17 @@ OpenReview Monitor 用于监控指定论文的评审动态与录用结果：当�
 说明:
 - 如果你需要填写 OpenReview 账号密码，强烈建议自建后端，把敏感信息控制在自己手里。
 - 如果使用托管前端，请把 `https://openreview-monitor.vercel.app` 加入 `backend/.env` 的 `CORS_ALLOW_ORIGINS`。
-- 如果后端部署在另一台机器（内网/公网），建议启用 HTTPS，详见部署文档。
+- 如果后端部署在另一台机器（内网/公网），建议启用 HTTPS，详见 [部署文档](docs/backend_deploy_zh.md)。
 
 ## 邮箱白名单
 请将 `no_reply@littleor.cn` 加入邮箱白名单，避免漏收通知。
 
 ## 文档
-- 后端部署: `docs/backend_deploy_zh.md`
-- 开发指南: `docs/development_zh.md`
+- 后端部署: [docs/backend_deploy_zh.md](docs/backend_deploy_zh.md)
+- 开发指南: [docs/development_zh.md](docs/development_zh.md)
 
 ## 贡献
-欢迎提交 Issue / PR，本地开发环境见 `docs/development_zh.md`。
+欢迎提交 Issue / PR，本地开发环境见 [docs/development_zh.md](docs/development_zh.md)。
 
 ## 许可证
 MIT。

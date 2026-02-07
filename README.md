@@ -50,17 +50,17 @@ You can run the backend on your own machine or private network. A public server 
 Notes:
 - If you plan to enter OpenReview credentials, self-hosting the backend is strongly recommended.
 - If you use the hosted frontend, add `https://openreview-monitor.vercel.app` to `CORS_ALLOW_ORIGINS` in `backend/.env`.
-- Want to run the backend on another machine (LAN/public)? Use HTTPS and see the deployment doc.
+- Want to run the backend on another machine (LAN/public)? Use HTTPS and see the [deployment doc](docs/backend_deploy.md).
 
 ## Email Deliverability
 Please add `no_reply@littleor.cn` to your email whitelist to avoid missing notifications.
 
 ## Documentation
-- Backend deployment: `docs/backend_deploy.md`
-- Development: `docs/development.md`
+- Backend deployment: [docs/backend_deploy.md](docs/backend_deploy.md)
+- Development: [docs/development.md](docs/development.md)
 
 ## Contributing
-Issues and pull requests are welcome. For local setup, see `docs/development.md`.
+Issues and pull requests are welcome. For local setup, see [docs/development.md](docs/development.md).
 
 ## License
 MIT.
