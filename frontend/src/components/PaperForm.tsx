@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,11 @@ export function PaperForm() {
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<PaperPreview | null>(null)
   const [showCredentials, setShowCredentials] = useState(false)
+  const [senderEmail, setSenderEmail] = useState<string | null>(null)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [verificationSent, setVerificationSent] = useState(false)
+  const [verificationSending, setVerificationSending] = useState(false)
+  const [verificationExpiresIn, setVerificationExpiresIn] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     openreview_url: '',
@@ -27,6 +32,18 @@ export function PaperForm() {
   })
 
   const { toast } = useToast()
+
+  useEffect(() => {
+    let active = true
+    api.getPublicEmailConfig().then((result) => {
+      if (!active) return
+      const email = result.data?.from_email?.trim()
+      setSenderEmail(email ? email : null)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const handlePreview = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,9 +64,39 @@ export function PaperForm() {
     } else if (result.data) {
       setPreview(result.data)
       setStep('preview')
+      setVerificationSent(false)
+      setVerificationCode('')
+      setVerificationExpiresIn(null)
     }
 
     setLoading(false)
+  }
+
+  const handleSendVerification = async () => {
+    if (!preview || !formData.email) return
+    setVerificationSending(true)
+
+    const result = await api.requestEmailVerification({
+      email: formData.email,
+      openreview_id: preview.openreview_id,
+    })
+
+    if (result.error) {
+      toast({
+        title: 'Verification failed',
+        description: result.error,
+        variant: 'destructive',
+      })
+    } else if (result.data) {
+      setVerificationSent(true)
+      setVerificationExpiresIn(result.data.expires_in_minutes)
+      toast({
+        title: 'Verification code sent',
+        description: `Check ${formData.email} for the code.`,
+      })
+    }
+
+    setVerificationSending(false)
   }
 
   const handleConfirm = async () => {
@@ -61,6 +108,7 @@ export function PaperForm() {
       title: preview.title || preview.openreview_id,
       venue: preview.venue || 'Unknown',
       email: formData.email,
+      verification_code: verificationCode,
       openreview_username: formData.openreview_username || undefined,
       openreview_password: formData.openreview_password || undefined,
       notify_on_review: formData.notify_on_review,
@@ -93,6 +141,9 @@ export function PaperForm() {
       notify_on_review_modified: true,
       notify_on_decision: true,
     })
+    setVerificationCode('')
+    setVerificationSent(false)
+    setVerificationExpiresIn(null)
   }
 
   // Step 1: Input form
@@ -236,6 +287,18 @@ export function PaperForm() {
 
           {/* Subscription Info */}
           <div className="space-y-4">
+            {senderEmail ? (
+              <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/70 p-3 text-xs text-emerald-900">
+                Notifications are sent from{' '}
+                <span className="font-semibold">{senderEmail}</span>. Add this sender to your
+                allowlist to avoid missing updates.
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 text-xs text-muted-foreground">
+                Sender email is not configured yet. Ask the admin to set the From email so you can
+                receive notifications reliably.
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Your Email Address</Label>
               <Input
@@ -243,12 +306,49 @@ export function PaperForm() {
                 type="email"
                 placeholder="your@email.com"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => {
+                  const nextEmail = e.target.value
+                  setFormData({ ...formData, email: nextEmail })
+                  if (verificationSent || verificationCode) {
+                    setVerificationSent(false)
+                    setVerificationCode('')
+                    setVerificationExpiresIn(null)
+                  }
+                }}
                 required
               />
             </div>
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={!formData.email || verificationSending}
+                onClick={handleSendVerification}
+              >
+                {verificationSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {verificationSent ? 'Resend verification code' : 'Send verification code'}
+              </Button>
+              {verificationSent && verificationExpiresIn && (
+                <p className="text-xs text-muted-foreground">
+                  Code expires in {verificationExpiresIn} minutes.
+                </p>
+              )}
+            </div>
+            {verificationSent && (
+              <div className="space-y-2">
+                <Label htmlFor="verification_code">Verification Code</Label>
+                <Input
+                  id="verification_code"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="6-digit code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-3">
               <Label>Notification Preferences</Label>
@@ -293,7 +393,7 @@ export function PaperForm() {
 
           <Button
             className="w-full"
-            disabled={loading || !formData.email}
+            disabled={loading || !formData.email || !verificationSent || !verificationCode}
             onClick={handleConfirm}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -316,6 +416,11 @@ export function PaperForm() {
           <p className="text-muted-foreground">
             You will receive email notifications at <strong>{formData.email}</strong> when there are updates for:
           </p>
+          {senderEmail && (
+            <p className="text-xs text-muted-foreground">
+              Emails will be sent from <strong>{senderEmail}</strong>. Add it to your allowlist.
+            </p>
+          )}
           <p className="font-medium">{preview?.title || preview?.openreview_id}</p>
           <Button onClick={handleReset} variant="outline">
             Monitor Another Paper

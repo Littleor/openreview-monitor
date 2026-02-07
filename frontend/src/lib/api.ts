@@ -73,11 +73,22 @@ export interface PaperCreate {
   title: string;
   venue: string;
   email: string;
+  verification_code: string;
   openreview_username?: string;
   openreview_password?: string;
   notify_on_review: boolean;
   notify_on_review_modified: boolean;
   notify_on_decision: boolean;
+}
+
+export interface EmailVerificationRequest {
+  email: string;
+  openreview_id: string;
+}
+
+export interface EmailVerificationResponse {
+  message: string;
+  expires_in_minutes: number;
 }
 
 export interface Paper {
@@ -124,6 +135,10 @@ export interface ConfigUpdate {
   from_email?: string;
 }
 
+export interface PublicEmailConfig {
+  from_email: string;
+}
+
 export const api = {
   // Public APIs
   previewPaper: (data: PaperPreviewRequest) =>
@@ -137,6 +152,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  requestEmailVerification: (data: EmailVerificationRequest) =>
+    fetchApi<EmailVerificationResponse>('/papers/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getPublicEmailConfig: () =>
+    fetchApi<PublicEmailConfig>('/public/email-config'),
 
   getPaperStatus: (paperId: number) =>
     fetchApi<{ id: number; title: string; status: string; venue: string; review_data: object }>(
