@@ -4,6 +4,17 @@ type Locale = 'en' | 'zh'
 
 const translations = {
   en: {
+    'seo.title': 'OpenReview Monitor | 24/7 Review & Decision Alerts',
+    'seo.description':
+      'OpenReview Monitor provides 24/7 monitoring for OpenReview papers, instant email alerts for reviews and decisions, and an open-source, self-hostable backend for secure tracking.',
+    'seo.keywords':
+      'OpenReview monitor, paper reviews, decision alerts, academic conferences, open source, self-hosted, email alerts',
+    'seo.ogTitle': 'OpenReview Monitor | 24/7 Review & Decision Alerts',
+    'seo.ogDescription':
+      'Track OpenReview submissions 24/7 with instant review and decision alerts, backed by open-source, self-hostable code.',
+    'seo.twitterTitle': 'OpenReview Monitor | 24/7 Review & Decision Alerts',
+    'seo.twitterDescription':
+      'Instant OpenReview review and decision alerts, with open-source, self-hostable monitoring.',
     'lang.switch': '中文',
     'lang.switchAria': 'Switch to Chinese',
     'brand.monitor': 'Monitor',
@@ -202,6 +213,17 @@ const translations = {
     'paperList.status.decided': 'Decided',
   },
   zh: {
+    'seo.title': 'OpenReview Monitor | 24/7 评审与决定提醒',
+    'seo.description':
+      'OpenReview Monitor 提供 24/7 论文监控，评审与决定邮件即时提醒，并支持开源自托管，安全可靠。',
+    'seo.keywords':
+      'OpenReview 监控, 论文评审, 决定提醒, 学术会议, 开源, 自托管, 邮件通知',
+    'seo.ogTitle': 'OpenReview Monitor | 24/7 评审与决定提醒',
+    'seo.ogDescription':
+      '全天候追踪 OpenReview 投稿，评审与决定更新即刻提醒，开源且可自托管。',
+    'seo.twitterTitle': 'OpenReview Monitor | 24/7 评审与决定提醒',
+    'seo.twitterDescription':
+      'OpenReview 评审与决定更新即刻通知，开源可自托管。',
     'lang.switch': 'English',
     'lang.switchAria': '切换到英文',
     'brand.monitor': '监控',
@@ -429,6 +451,26 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
     }
   }, [locale])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const setMeta = (selector: string, content: string) => {
+      const el = document.querySelector<HTMLMetaElement>(selector)
+      if (el) {
+        el.setAttribute('content', content)
+      }
+    }
+
+    document.title = t('seo.title')
+    setMeta('meta[name="description"]', t('seo.description'))
+    setMeta('meta[name="keywords"]', t('seo.keywords'))
+    setMeta('meta[property="og:title"]', t('seo.ogTitle'))
+    setMeta('meta[property="og:description"]', t('seo.ogDescription'))
+    setMeta('meta[property="og:locale"]', locale === 'zh' ? 'zh_CN' : 'en_US')
+    setMeta('meta[name="twitter:title"]', t('seo.twitterTitle'))
+    setMeta('meta[name="twitter:description"]', t('seo.twitterDescription'))
+  }, [locale, t])
 
   const t = useCallback(
     (key: TranslationKey, vars?: Record<string, string | number>) => {
