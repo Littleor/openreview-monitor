@@ -265,6 +265,11 @@ export default function Admin() {
                                       Review {sub.notified_review ? 'Sent' : 'Pending'}
                                     </span>
                                   )}
+                                  {sub.notify_on_review_modified && (
+                                    <span className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-amber-100 text-amber-700">
+                                      Review Changes On
+                                    </span>
+                                  )}
                                   {/* Decision notification status */}
                                   {sub.notify_on_decision && (
                                     <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${

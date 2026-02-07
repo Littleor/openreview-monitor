@@ -28,6 +28,7 @@ class PaperCreate(BaseModel):
     openreview_username: Optional[str] = None
     openreview_password: Optional[str] = None
     notify_on_review: bool = True
+    notify_on_review_modified: bool = True
     notify_on_decision: bool = True
 
 
@@ -69,6 +70,7 @@ class SubscriberResponse(BaseModel):
     paper_id: int
     email: str
     notify_on_review: bool
+    notify_on_review_modified: bool
     notify_on_decision: bool
     notified_review: bool
     notified_decision: bool

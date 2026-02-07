@@ -22,6 +22,7 @@ export function PaperForm() {
     openreview_password: '',
     email: '',
     notify_on_review: true,
+    notify_on_review_modified: true,
     notify_on_decision: true,
   })
 
@@ -63,6 +64,7 @@ export function PaperForm() {
       openreview_username: formData.openreview_username || undefined,
       openreview_password: formData.openreview_password || undefined,
       notify_on_review: formData.notify_on_review,
+      notify_on_review_modified: formData.notify_on_review_modified,
       notify_on_decision: formData.notify_on_decision,
     })
 
@@ -88,6 +90,7 @@ export function PaperForm() {
       openreview_password: '',
       email: '',
       notify_on_review: true,
+      notify_on_review_modified: true,
       notify_on_decision: true,
     })
   }
@@ -259,6 +262,18 @@ export function PaperForm() {
                 />
                 <Label htmlFor="notify_on_review" className="font-normal">
                   Notify me when reviews are available
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="notify_on_review_modified"
+                  checked={formData.notify_on_review_modified}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, notify_on_review_modified: checked as boolean })
+                  }
+                />
+                <Label htmlFor="notify_on_review_modified" className="font-normal">
+                  Notify me when reviews are modified
                 </Label>
               </div>
               <div className="flex items-center space-x-2">

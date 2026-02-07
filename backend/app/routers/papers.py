@@ -93,6 +93,7 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
             paper_id=existing_paper.id,
             email=paper_data.email,
             notify_on_review=paper_data.notify_on_review,
+            notify_on_review_modified=paper_data.notify_on_review_modified,
             notify_on_decision=paper_data.notify_on_decision
         )
         db.add(subscriber)
@@ -121,6 +122,7 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         paper_id=paper.id,
         email=paper_data.email,
         notify_on_review=paper_data.notify_on_review,
+        notify_on_review_modified=paper_data.notify_on_review_modified,
         notify_on_decision=paper_data.notify_on_decision
     )
     db.add(subscriber)

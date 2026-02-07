@@ -35,6 +35,7 @@ class Subscriber(Base):
     paper_id = Column(Integer, ForeignKey("papers.id"), nullable=False)
     email = Column(String(255), nullable=False)
     notify_on_review = Column(Boolean, default=True)
+    notify_on_review_modified = Column(Boolean, default=True)
     notify_on_decision = Column(Boolean, default=True)
     notified_review = Column(Boolean, default=False)
     notified_decision = Column(Boolean, default=False)

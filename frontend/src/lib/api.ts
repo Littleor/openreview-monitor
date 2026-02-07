@@ -76,6 +76,7 @@ export interface PaperCreate {
   openreview_username?: string;
   openreview_password?: string;
   notify_on_review: boolean;
+  notify_on_review_modified: boolean;
   notify_on_decision: boolean;
 }
 
@@ -97,6 +98,7 @@ export interface Subscriber {
   paper_id: number;
   email: string;
   notify_on_review: boolean;
+  notify_on_review_modified: boolean;
   notify_on_decision: boolean;
   notified_review: boolean;
   notified_decision: boolean;

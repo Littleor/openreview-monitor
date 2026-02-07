@@ -27,6 +27,7 @@ async def get_all_subscribers(
             paper_id=sub.paper_id,
             email=sub.email,
             notify_on_review=sub.notify_on_review,
+            notify_on_review_modified=sub.notify_on_review_modified,
             notify_on_decision=sub.notify_on_decision,
             notified_review=sub.notified_review,
             notified_decision=sub.notified_decision,

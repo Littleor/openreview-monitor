@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import get_settings
@@ -28,3 +28,23 @@ def get_db():
 def init_db():
     """Initialize database tables."""
     Base.metadata.create_all(bind=engine)
+    ensure_subscriber_columns()
+
+
+def ensure_subscriber_columns():
+    """Lightweight migration for new subscriber flags."""
+    inspector = inspect(engine)
+    if "subscribers" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("subscribers")}
+    if "notify_on_review_modified" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE subscribers "
+                "ADD COLUMN notify_on_review_modified BOOLEAN DEFAULT 1"
+            ))
+            conn.execute(text(
+                "UPDATE subscribers SET notify_on_review_modified = 1 "
+                "WHERE notify_on_review_modified IS NULL"
+            ))

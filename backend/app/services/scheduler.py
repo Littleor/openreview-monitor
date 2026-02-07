@@ -149,7 +149,7 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
             # Notify subscribers about modifications
             subscribers = db.query(Subscriber).filter(
                 Subscriber.paper_id == paper.id,
-                Subscriber.notify_on_review == True
+                Subscriber.notify_on_review_modified == True
             ).all()
 
             for sub in subscribers:
