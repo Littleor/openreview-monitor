@@ -20,6 +20,7 @@ scheduler = AsyncIOScheduler()
 _scheduler_run_lock = Lock()
 _SCHEDULER_TICK_MINUTES = 1
 _VENUE_PROBE_COUNT = 5
+_TERMINAL_STATUSES = {"accepted", "rejected"}
 
 
 def get_email_service() -> EmailService:
@@ -167,6 +168,12 @@ def _decision_signature(decision: Optional[Dict[str, Any]]) -> Tuple[Any, Any, A
     )
 
 
+def _is_terminal_status(status: Optional[str]) -> bool:
+    if not status:
+        return False
+    return status in _TERMINAL_STATUSES
+
+
 def _send_review_modified_notifications(
     db,
     paper: Paper,
@@ -288,6 +295,9 @@ def _check_single_paper(
     Returns (has_decision, fetched_from_openreview, state_changed).
     """
     try:
+        if not force and _is_terminal_status(paper.status):
+            return True, False, False
+
         should_run_decision = run_decision_checks and (
             force or _is_due(paper.last_decision_checked, decision_interval_minutes, now)
         )
@@ -431,6 +441,7 @@ def _check_decisions_smart_impl(
             Paper.id.in_(notification_pending_ids.select()),
         )
     ).all()
+    papers = [paper for paper in papers if not _is_terminal_status(paper.status)]
 
     logger.info("Decision check: found %d papers to evaluate", len(papers))
 
@@ -513,10 +524,13 @@ def _check_review_modifications_all_impl(
         Subscriber.notify_on_review_modified == True
     ).distinct().all()
 
-    reviewed_statuses = {"reviewed", "accepted", "rejected", "decided"}
+    reviewed_statuses = {"reviewed", "decided"}
     papers = [
         paper for paper in candidates
-        if (paper.status in reviewed_statuses) or bool(_extract_reviews_from_cache(paper))
+        if (
+            (not _is_terminal_status(paper.status))
+            and ((paper.status in reviewed_statuses) or bool(_extract_reviews_from_cache(paper)))
+        )
     ]
 
     papers.sort(key=lambda p: (
