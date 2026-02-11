@@ -185,6 +185,12 @@ async def get_config(
                 str(settings.review_mod_check_interval)
             )
         ),
+        review_mod_request_gap_seconds=float(
+            get_config_value(
+                "review_mod_request_gap_seconds",
+                str(settings.review_mod_request_gap_seconds)
+            )
+        ),
         smtp_host=get_config_value("smtp_host", settings.smtp_host),
         smtp_port=int(get_config_value("smtp_port", str(settings.smtp_port))),
         smtp_user=get_config_value("smtp_user", settings.smtp_user),
@@ -212,6 +218,11 @@ async def update_config(
         set_config_value("check_interval", str(config_data.check_interval))
     if config_data.review_mod_check_interval is not None:
         set_config_value("review_mod_check_interval", str(config_data.review_mod_check_interval))
+    if config_data.review_mod_request_gap_seconds is not None:
+        set_config_value(
+            "review_mod_request_gap_seconds",
+            str(config_data.review_mod_request_gap_seconds)
+        )
     if config_data.smtp_host is not None:
         set_config_value("smtp_host", config_data.smtp_host)
     if config_data.smtp_port is not None:

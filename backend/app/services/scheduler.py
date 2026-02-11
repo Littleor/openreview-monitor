@@ -4,6 +4,7 @@ from collections import defaultdict
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import logging
+import time
 from sqlalchemy import and_, or_
 
 from ..database import SessionLocal
@@ -58,7 +59,18 @@ def _get_int_config(db, key: str, default: int) -> int:
         return max(1, default)
 
 
-def _get_runtime_intervals(db) -> Tuple[int, int]:
+def _get_float_config(db, key: str, default: float, min_value: float = 0.0) -> float:
+    config = db.query(Config).filter(Config.key == key).first()
+    if not config or config.value is None:
+        return max(min_value, default)
+    try:
+        return max(min_value, float(config.value))
+    except (TypeError, ValueError):
+        logger.warning("Invalid float config for %s=%s, using default=%s", key, config.value, default)
+        return max(min_value, default)
+
+
+def _get_runtime_intervals(db) -> Tuple[int, int, float]:
     settings = get_settings()
     decision_interval = _get_int_config(db, "check_interval", settings.check_interval)
     review_mod_interval = _get_int_config(
@@ -66,7 +78,13 @@ def _get_runtime_intervals(db) -> Tuple[int, int]:
         "review_mod_check_interval",
         settings.review_mod_check_interval
     )
-    return decision_interval, review_mod_interval
+    review_mod_request_gap_seconds = _get_float_config(
+        db,
+        "review_mod_request_gap_seconds",
+        settings.review_mod_request_gap_seconds,
+        min_value=0.0,
+    )
+    return decision_interval, review_mod_interval, review_mod_request_gap_seconds
 
 
 def _is_due(last_checked: Optional[datetime], interval_minutes: int, now: datetime) -> bool:
@@ -230,10 +248,10 @@ def _check_single_paper(
     run_decision_checks: bool,
     run_review_mod_checks: bool,
     force: bool = False,
-) -> bool:
+) -> Tuple[bool, bool]:
     """
     Check a single paper according to enabled check types.
-    Returns True if a decision exists in the evaluated snapshot.
+    Returns (has_decision, fetched_from_openreview).
     """
     try:
         should_run_decision = run_decision_checks and (
@@ -244,7 +262,8 @@ def _check_single_paper(
         )
 
         if not should_run_decision and not should_run_review_mod:
-            return bool(paper.decision_data) or (paper.status in {"accepted", "rejected", "decided"})
+            has_decision = bool(paper.decision_data) or (paper.status in {"accepted", "rejected", "decided"})
+            return has_decision, False
 
         shared_interval_minutes = max(1, min(decision_interval_minutes, review_mod_interval_minutes))
         use_cached_snapshot = (
@@ -314,11 +333,11 @@ def _check_single_paper(
             logger.info("Paper %s updated: status=%s", paper.openreview_id, paper.status)
 
         db.flush()
-        return has_decision
+        return has_decision, fetched_from_openreview
 
     except Exception as e:
         logger.error("Error checking paper %s: %s", paper.openreview_id, e)
-        return False
+        return False, False
 
 
 def _check_decisions_smart_impl(
@@ -327,6 +346,7 @@ def _check_decisions_smart_impl(
     now: datetime,
     decision_interval_minutes: int,
     review_mod_interval_minutes: int,
+    review_mod_request_gap_seconds: float,
     force: bool = False,
 ) -> None:
     """
@@ -379,7 +399,7 @@ def _check_decisions_smart_impl(
 
         any_decision_found = False
         for paper in top_papers:
-            has_decision = _check_single_paper(
+            has_decision, _ = _check_single_paper(
                 db=db,
                 paper=paper,
                 email_service=email_service,
@@ -425,6 +445,7 @@ def _check_review_modifications_all_impl(
     now: datetime,
     decision_interval_minutes: int,
     review_mod_interval_minutes: int,
+    review_mod_request_gap_seconds: float,
     force: bool = False,
 ) -> None:
     """
@@ -447,8 +468,8 @@ def _check_review_modifications_all_impl(
 
     logger.info("Review-mod check: found %d papers to evaluate", len(papers))
 
-    for paper in papers:
-        _check_single_paper(
+    for idx, paper in enumerate(papers):
+        _, fetched_from_openreview = _check_single_paper(
             db=db,
             paper=paper,
             email_service=email_service,
@@ -459,11 +480,14 @@ def _check_review_modifications_all_impl(
             run_review_mod_checks=True,
             force=force,
         )
+        has_more = idx < len(papers) - 1
+        if fetched_from_openreview and has_more and review_mod_request_gap_seconds > 0:
+            time.sleep(review_mod_request_gap_seconds)
 
 
 def _run_check_job(
     job_name: str,
-    runner: Callable[[Any, EmailService, datetime, int, int, bool], None],
+    runner: Callable[[Any, EmailService, datetime, int, int, float, bool], None],
     force: bool = False,
 ) -> None:
     if not _scheduler_run_lock.acquire(blocking=False):
@@ -472,14 +496,15 @@ def _run_check_job(
 
     db = SessionLocal()
     try:
-        decision_interval, review_mod_interval = _get_runtime_intervals(db)
+        decision_interval, review_mod_interval, review_mod_request_gap_seconds = _get_runtime_intervals(db)
         email_service = get_email_service()
         now = datetime.utcnow()
         logger.info(
-            "Starting %s (decision_interval=%sm, review_mod_interval=%sm, force=%s)",
+            "Starting %s (decision_interval=%sm, review_mod_interval=%sm, review_mod_gap=%ss, force=%s)",
             job_name,
             decision_interval,
             review_mod_interval,
+            review_mod_request_gap_seconds,
             force,
         )
         runner(
@@ -488,6 +513,7 @@ def _run_check_job(
             now,
             decision_interval,
             review_mod_interval,
+            review_mod_request_gap_seconds,
             force,
         )
         db.commit()
@@ -516,13 +542,22 @@ def check_review_modifications_all(force: bool = False):
 
 def check_all_papers(force: bool = False):
     """Run both decision smart-check and review-modification full-check."""
-    def _run_both(db, email_service, now, decision_interval, review_mod_interval, run_force):
+    def _run_both(
+        db,
+        email_service,
+        now,
+        decision_interval,
+        review_mod_interval,
+        review_mod_request_gap_seconds,
+        run_force
+    ):
         _check_decisions_smart_impl(
             db=db,
             email_service=email_service,
             now=now,
             decision_interval_minutes=decision_interval,
             review_mod_interval_minutes=review_mod_interval,
+            review_mod_request_gap_seconds=review_mod_request_gap_seconds,
             force=run_force,
         )
         _check_review_modifications_all_impl(
@@ -531,6 +566,7 @@ def check_all_papers(force: bool = False):
             now=now,
             decision_interval_minutes=decision_interval,
             review_mod_interval_minutes=review_mod_interval,
+            review_mod_request_gap_seconds=review_mod_request_gap_seconds,
             force=run_force,
         )
 

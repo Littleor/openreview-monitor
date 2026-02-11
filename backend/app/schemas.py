@@ -100,6 +100,7 @@ class TokenResponse(BaseModel):
 class ConfigUpdate(BaseModel):
     check_interval: Optional[int] = Field(default=None, ge=1)
     review_mod_check_interval: Optional[int] = Field(default=None, ge=1)
+    review_mod_request_gap_seconds: Optional[float] = Field(default=None, ge=0)
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = None
     smtp_user: Optional[str] = None
@@ -111,6 +112,7 @@ class ConfigUpdate(BaseModel):
 class ConfigResponse(BaseModel):
     check_interval: int
     review_mod_check_interval: int
+    review_mod_request_gap_seconds: float
     smtp_host: str
     smtp_port: int
     smtp_user: str

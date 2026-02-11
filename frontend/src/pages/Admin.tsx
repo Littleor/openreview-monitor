@@ -48,6 +48,7 @@ export default function Admin() {
       setConfigForm({
         check_interval: configResult.data.check_interval,
         review_mod_check_interval: configResult.data.review_mod_check_interval,
+        review_mod_request_gap_seconds: configResult.data.review_mod_request_gap_seconds,
         smtp_host: configResult.data.smtp_host,
         smtp_port: configResult.data.smtp_port,
         smtp_user: configResult.data.smtp_user,
@@ -384,6 +385,28 @@ export default function Admin() {
                         />
                         <p className="text-xs text-muted-foreground">
                           {t('admin.config.reviewModInterval.help')}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="review_mod_request_gap_seconds">
+                          {t('admin.config.reviewModGapSeconds.label')}
+                        </Label>
+                        <Input
+                          id="review_mod_request_gap_seconds"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={configForm.review_mod_request_gap_seconds ?? ''}
+                          onChange={(e) =>
+                            setConfigForm({
+                              ...configForm,
+                              review_mod_request_gap_seconds: parseFloat(e.target.value),
+                            })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t('admin.config.reviewModGapSeconds.help')}
                         </p>
                       </div>
 
