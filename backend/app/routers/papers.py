@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import re
 import secrets
 import hashlib
@@ -26,6 +26,7 @@ verification_rate_limiter = RateLimiter(
     settings.email_verification_max_attempts,
     settings.email_verification_window_seconds
 )
+VALID_PAPER_STATUSES = {"pending", "reviewed", "accepted", "rejected", "decided"}
 
 
 def _hash_verification_code(code: str) -> str:
@@ -66,6 +67,12 @@ def _get_client_ip(request: Request) -> str:
     if request.client:
         return request.client.host
     return "unknown"
+
+
+def _normalize_paper_status(status_value: Optional[str]) -> str:
+    if status_value in VALID_PAPER_STATUSES:
+        return status_value
+    return "pending"
 
 
 @router.post("/preview", response_model=PaperPreview)
@@ -257,12 +264,30 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         )
 
         # Add new subscriber to existing paper
+        existing_review_data = existing_paper.review_data or {}
+        existing_reviews = existing_review_data.get("reviews", [])
+        if not isinstance(existing_reviews, list):
+            existing_reviews = []
+        has_existing_reviews = bool(existing_reviews) or existing_paper.status in {
+            "reviewed",
+            "accepted",
+            "rejected",
+            "decided",
+        }
+        has_existing_decision = existing_paper.decision_data is not None or existing_paper.status in {
+            "accepted",
+            "rejected",
+            "decided",
+        }
+
         subscriber = Subscriber(
             paper_id=existing_paper.id,
             email=paper_data.email,
             notify_on_review=paper_data.notify_on_review,
             notify_on_review_modified=paper_data.notify_on_review_modified,
-            notify_on_decision=paper_data.notify_on_decision
+            notify_on_decision=paper_data.notify_on_decision,
+            notified_review=has_existing_reviews,
+            notified_decision=has_existing_decision,
         )
         db.add(subscriber)
         verification.used_at = datetime.utcnow()
@@ -280,6 +305,40 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         code=paper_data.verification_code
     )
 
+    # Fetch current OpenReview status immediately to establish a baseline
+    try:
+        service = OpenReviewService(
+            username=paper_data.openreview_username,
+            password=paper_data.openreview_password
+        )
+        status_info = service.check_paper_status(
+            paper_data.openreview_id,
+            suppress_errors=False
+        )
+    except Exception as e:
+        error_text = str(e)
+        if "ForbiddenError" in error_text or "permission" in error_text.lower() or "status': 403" in error_text:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Failed to fetch current paper status. This paper may be private. "
+                    "Please provide valid OpenReview credentials."
+                )
+            )
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Failed to fetch current paper status. "
+                "Please verify the OpenReview ID and credentials, then try again."
+            )
+        )
+
+    current_reviews = status_info.get("reviews", [])
+    if not isinstance(current_reviews, list):
+        current_reviews = []
+    current_decision = status_info.get("decision")
+    current_status = _normalize_paper_status(status_info.get("status"))
+
     # Create new paper with confirmed info
     paper = Paper(
         openreview_id=paper_data.openreview_id,
@@ -288,7 +347,10 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         venue=paper_data.venue,
         openreview_username=encrypt_value(paper_data.openreview_username),
         openreview_password=encrypt_value(paper_data.openreview_password),
-        status="pending"
+        status=current_status,
+        last_checked=datetime.utcnow(),
+        review_data={"reviews": current_reviews, "review_count": len(current_reviews)},
+        decision_data=current_decision if current_decision else None,
     )
     db.add(paper)
     db.flush()  # Get the paper ID
@@ -299,7 +361,9 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         email=paper_data.email,
         notify_on_review=paper_data.notify_on_review,
         notify_on_review_modified=paper_data.notify_on_review_modified,
-        notify_on_decision=paper_data.notify_on_decision
+        notify_on_decision=paper_data.notify_on_decision,
+        notified_review=bool(current_reviews),
+        notified_decision=bool(current_decision),
     )
     db.add(subscriber)
     verification.used_at = datetime.utcnow()
@@ -309,4 +373,3 @@ async def add_paper(paper_data: PaperCreate, db: Session = Depends(get_db)):
         message=f"Successfully added: {paper_data.title} (Submission #{paper_data.submission_number})",
         success=True
     )
-

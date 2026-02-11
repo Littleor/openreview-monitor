@@ -2,6 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 from collections import defaultdict
 import logging
+from sqlalchemy import or_
 
 from ..database import SessionLocal
 from ..models import Paper, Subscriber, Config
@@ -54,9 +55,14 @@ def check_all_papers():
     db = SessionLocal()
 
     try:
-        # Get all pending/reviewed papers
+        # Get all papers that still need monitoring.
+        # Include empty/null status as a safety net for historical bad data.
         papers = db.query(Paper).filter(
-            Paper.status.in_(["pending", "reviewed"])
+            or_(
+                Paper.status.in_(["pending", "reviewed"]),
+                Paper.status.is_(None),
+                Paper.status == "",
+            )
         ).all()
 
         logger.info(f"Found {len(papers)} papers to check")
@@ -128,11 +134,15 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
         )
 
         # Get current status from OpenReview
-        status_info = service.check_paper_status(paper.openreview_id)
+        status_info = service.check_paper_status(
+            paper.openreview_id,
+            suppress_errors=False
+        )
         new_status = status_info["status"]
         reviews = status_info.get("reviews", [])
         decision = status_info.get("decision")
         has_decision = status_info.get("has_decision", False)
+        previous_status = paper.status or ""
 
         # Check for modified reviews
         stored_reviews_data = paper.review_data or {}
@@ -178,7 +188,7 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
             paper.decision_data = decision
 
         # Check for new reviews (not yet notified)
-        if reviews and paper.status == "pending":
+        if reviews and previous_status == "pending":
             # Get subscribers who want review notifications and haven't been notified
             subscribers = db.query(Subscriber).filter(
                 Subscriber.paper_id == paper.id,
@@ -197,8 +207,6 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
                 if success:
                     sub.notified_review = True
                     logger.info(f"Notified {sub.email} about reviews for {paper.openreview_id}")
-
-            paper.status = "reviewed"
 
         # Check for decision (not yet notified) - this is the key notification
         if has_decision and decision:
@@ -223,8 +231,8 @@ def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
                     sub.notified_decision = True
                     logger.info(f"Notified {sub.email} about decision for {paper.openreview_id}")
 
-            # Update status based on decision
-            paper.status = new_status
+        # Keep database status aligned with current OpenReview status.
+        paper.status = new_status
 
         db.flush()
         logger.info(f"Paper {paper.openreview_id} updated: status={paper.status}")

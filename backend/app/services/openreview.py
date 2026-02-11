@@ -124,7 +124,7 @@ class OpenReviewService:
                 return True
         return False
 
-    def get_reviews(self, paper_id: str) -> List[Dict[str, Any]]:
+    def get_reviews(self, paper_id: str, suppress_errors: bool = True) -> List[Dict[str, Any]]:
         """Get review information for a paper."""
         try:
             notes = self.client.get_notes(forum=paper_id)
@@ -177,9 +177,11 @@ class OpenReviewService:
 
         except Exception as e:
             logger.error(f"Error fetching reviews for {paper_id}: {e}")
+            if not suppress_errors:
+                raise
             return []
 
-    def get_decision(self, paper_id: str) -> Optional[Dict[str, Any]]:
+    def get_decision(self, paper_id: str, suppress_errors: bool = True) -> Optional[Dict[str, Any]]:
         """Get the final decision for a paper."""
         try:
             notes = self.client.get_notes(forum=paper_id)
@@ -220,12 +222,14 @@ class OpenReviewService:
 
         except Exception as e:
             logger.error(f"Error fetching decision for {paper_id}: {e}")
+            if not suppress_errors:
+                raise
             return None
 
-    def check_paper_status(self, paper_id: str) -> Dict[str, Any]:
+    def check_paper_status(self, paper_id: str, suppress_errors: bool = True) -> Dict[str, Any]:
         """Check the complete status of a paper."""
-        reviews = self.get_reviews(paper_id)
-        decision = self.get_decision(paper_id)
+        reviews = self.get_reviews(paper_id, suppress_errors=suppress_errors)
+        decision = self.get_decision(paper_id, suppress_errors=suppress_errors)
 
         status = "pending"
         if decision:
