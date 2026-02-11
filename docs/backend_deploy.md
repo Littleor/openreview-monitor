@@ -79,6 +79,14 @@ VITE_OFFICIAL_API_BASE_URL=https://your-backend.example.com
 
 Then rebuild the frontend.
 
+Optional: inject a custom analytics script tag at build time:
+
+```bash
+VITE_ANALYTICS_SRC=https://statistics.littleor.cn/track.js?site=your-site-id
+```
+
+This will add `<script async src="..."></script>` to the page.
+
 ## HTTPS (Recommended for LAN/Public)
 If your frontend is served over HTTPS (for example on Vercel), browsers will usually block requests to a LAN/public `http://` backend (mixed content). Put the backend behind HTTPS, or run the frontend locally.
 

@@ -29,6 +29,7 @@
 
 可选前端环境变量：
 - `VITE_OFFICIAL_API_BASE_URL`：覆盖默认官方后端地址。
+- `VITE_ANALYTICS_SRC`：注入一个 `async` 的统计脚本标签，`src` 取该变量的 URL。
 
 ## Lint
 - `cd frontend`

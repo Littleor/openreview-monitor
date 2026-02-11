@@ -79,6 +79,14 @@ VITE_OFFICIAL_API_BASE_URL=https://your-backend.example.com
 
 然后重新构建前端。
 
+可选：构建前端时注入统计脚本：
+
+```bash
+VITE_ANALYTICS_SRC=https://statistics.littleor.cn/track.js?site=your-site-id
+```
+
+会生成 `<script async src="..."></script>`。
+
 ## HTTPS 建议（内网/公网部署）
 如果前端在 HTTPS 域名下（例如 Vercel 托管），浏览器通常会阻止访问内网/公网的 `http://` 后端（混合内容）。建议为后端加一层反向代理并启用 HTTPS（或改为本地运行前端）。
 

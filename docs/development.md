@@ -29,6 +29,7 @@ The frontend will be available at `http://localhost:3000`.
 
 Optional frontend env:
 - `VITE_OFFICIAL_API_BASE_URL`: overrides the default official backend base URL.
+- `VITE_ANALYTICS_SRC`: injects an async analytics script tag with the given `src` URL.
 
 ## Linting
 - `cd frontend`
