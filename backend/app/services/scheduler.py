@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 _scheduler_run_lock = Lock()
 _SCHEDULER_TICK_MINUTES = 1
+_VENUE_PROBE_COUNT = 5
 
 
 def get_email_service() -> EmailService:
@@ -155,6 +156,17 @@ def _build_cached_status_info(paper: Paper) -> Dict[str, Any]:
     }
 
 
+def _decision_signature(decision: Optional[Dict[str, Any]]) -> Tuple[Any, Any, Any]:
+    """Create a comparable signature for decision snapshots."""
+    if not isinstance(decision, dict):
+        return (None, None, None)
+    return (
+        decision.get("decision"),
+        decision.get("comment"),
+        decision.get("mdate"),
+    )
+
+
 def _send_review_modified_notifications(
     db,
     paper: Paper,
@@ -270,10 +282,10 @@ def _check_single_paper(
     force: bool = False,
     send_notifications: bool = True,
     mark_existing_notifications_as_sent: bool = False,
-) -> Tuple[bool, bool]:
+) -> Tuple[bool, bool, bool]:
     """
     Check a single paper according to enabled check types.
-    Returns (has_decision, fetched_from_openreview).
+    Returns (has_decision, fetched_from_openreview, state_changed).
     """
     try:
         should_run_decision = run_decision_checks and (
@@ -285,7 +297,7 @@ def _check_single_paper(
 
         if not should_run_decision and not should_run_review_mod:
             has_decision = bool(paper.decision_data) or (paper.status in {"accepted", "rejected", "decided"})
-            return has_decision, False
+            return has_decision, False, False
 
         shared_interval_minutes = max(1, min(decision_interval_minutes, review_mod_interval_minutes))
         use_cached_snapshot = (
@@ -296,6 +308,11 @@ def _check_single_paper(
 
         status_info: Dict[str, Any]
         fetched_from_openreview = False
+        state_changed = False
+        previous_status = paper.status or "pending"
+        previous_reviews = _extract_reviews_from_cache(paper)
+        previous_review_count = len(previous_reviews)
+        previous_decision = paper.decision_data if isinstance(paper.decision_data, dict) else None
 
         if use_cached_snapshot:
             status_info = _build_cached_status_info(paper)
@@ -326,14 +343,22 @@ def _check_single_paper(
                 decision = None
 
             modified_reviews = _detect_modified_reviews(stored_reviews, reviews)
-            if send_notifications:
+            if send_notifications and run_review_mod_checks:
                 _send_review_modified_notifications(db, paper, email_service, modified_reviews)
 
             paper.last_checked = now
             paper.review_data = {"reviews": reviews, "review_count": len(reviews)}
             if decision:
                 paper.decision_data = decision
-            paper.status = status_info.get("status", paper.status or "pending")
+            new_status = status_info.get("status", previous_status)
+            decision_changed = _decision_signature(previous_decision) != _decision_signature(decision)
+            state_changed = (
+                new_status != previous_status
+                or len(reviews) != previous_review_count
+                or decision_changed
+                or bool(modified_reviews)
+            )
+            paper.status = new_status
 
         reviews = status_info.get("reviews", [])
         if not isinstance(reviews, list):
@@ -360,11 +385,11 @@ def _check_single_paper(
             logger.info("Paper %s updated: status=%s", paper.openreview_id, paper.status)
 
         db.flush()
-        return has_decision, fetched_from_openreview
+        return has_decision, fetched_from_openreview, state_changed
 
     except Exception as e:
         logger.error("Error checking paper %s: %s", paper.openreview_id, e)
-        return False, False
+        return False, False, False
 
 
 def _check_decisions_smart_impl(
@@ -379,9 +404,9 @@ def _check_decisions_smart_impl(
     """
     Decision/review availability checker with venue optimization:
     - Group papers by venue
-    - For each venue, sort by submission_number and check top 5 first
-    - If none of the top 5 have decisions, skip the rest
-    - If any has decision, continue checking the rest
+    - For each venue, sort by submission_number and check front probe papers first
+    - If none of the probe papers changed, skip the rest
+    - If any probe paper changed, continue checking the rest
     """
     notification_pending_ids = db.query(Paper.id).join(
         Subscriber, Subscriber.paper_id == Paper.id
@@ -421,12 +446,12 @@ def _check_decisions_smart_impl(
         ))
 
         logger.info("Decision check venue: %s (%d papers)", venue, len(venue_paper_list))
-        top_papers = venue_paper_list[:5]
-        remaining_papers = venue_paper_list[5:]
+        top_papers = venue_paper_list[:_VENUE_PROBE_COUNT]
+        remaining_papers = venue_paper_list[_VENUE_PROBE_COUNT:]
 
-        any_decision_found = False
+        any_probe_changed = False
         for paper in top_papers:
-            has_decision, _ = _check_single_paper(
+            _, _, state_changed = _check_single_paper(
                 db=db,
                 paper=paper,
                 email_service=email_service,
@@ -437,10 +462,10 @@ def _check_decisions_smart_impl(
                 run_review_mod_checks=False,
                 force=force,
             )
-            if has_decision:
-                any_decision_found = True
+            if state_changed:
+                any_probe_changed = True
 
-        if (any_decision_found or force) and remaining_papers:
+        if (any_probe_changed or force) and remaining_papers:
             logger.info(
                 "Decision check: continuing venue %s for remaining %d papers",
                 venue,
@@ -460,7 +485,8 @@ def _check_decisions_smart_impl(
                 )
         elif remaining_papers:
             logger.info(
-                "Decision check: no decisions in top 5 for %s, skipping remaining %d papers",
+                "Decision check: no changes in top %d for %s, skipping remaining %d papers",
+                _VENUE_PROBE_COUNT,
                 venue,
                 len(remaining_papers),
             )
@@ -478,13 +504,20 @@ def _check_review_modifications_all_impl(
     """
     Full review-modification monitor:
     - Targets papers that have at least one subscriber with review-mod notifications enabled
+    - Only checks papers that are already reviewed (status or cached reviews)
     - Applies full status sync and modified review detection
     """
-    papers = db.query(Paper).join(
+    candidates = db.query(Paper).join(
         Subscriber, Subscriber.paper_id == Paper.id
     ).filter(
         Subscriber.notify_on_review_modified == True
     ).distinct().all()
+
+    reviewed_statuses = {"reviewed", "accepted", "rejected", "decided"}
+    papers = [
+        paper for paper in candidates
+        if (paper.status in reviewed_statuses) or bool(_extract_reviews_from_cache(paper))
+    ]
 
     papers.sort(key=lambda p: (
         p.venue or "",
@@ -493,10 +526,14 @@ def _check_review_modifications_all_impl(
         p.id,
     ))
 
-    logger.info("Review-mod check: found %d papers to evaluate", len(papers))
+    logger.info(
+        "Review-mod check: found %d subscribed papers, %d review-ready papers to evaluate",
+        len(candidates),
+        len(papers),
+    )
 
     for idx, paper in enumerate(papers):
-        _, fetched_from_openreview = _check_single_paper(
+        _, fetched_from_openreview, _ = _check_single_paper(
             db=db,
             paper=paper,
             email_service=email_service,
@@ -531,7 +568,7 @@ def _sync_all_papers_status_silent_impl(
     logger.info("Silent sync: found %d papers to evaluate", len(papers))
 
     for idx, paper in enumerate(papers):
-        _, fetched_from_openreview = _check_single_paper(
+        _, fetched_from_openreview, _ = _check_single_paper(
             db=db,
             paper=paper,
             email_service=email_service,
@@ -614,7 +651,7 @@ def sync_all_papers_status_silent(force: bool = True):
 
 
 def check_all_papers(force: bool = False):
-    """Run both decision smart-check and review-modification full-check."""
+    """Run two-phase checks: venue smart probe first, then review-mod full pass."""
     def _run_both(
         db,
         email_service,
@@ -647,25 +684,16 @@ def check_all_papers(force: bool = False):
 
 
 def start_scheduler(interval_minutes: int = 30):
-    """Start scheduler with two dispatcher jobs and runtime-configurable intervals."""
+    """Start scheduler with one dispatcher job running two sequential phases."""
     for job_id in ["check_papers", "check_decisions", "check_review_modifications"]:
         if scheduler.get_job(job_id):
             scheduler.remove_job(job_id)
 
     scheduler.add_job(
-        check_decisions_smart,
+        check_all_papers,
         "interval",
         minutes=_SCHEDULER_TICK_MINUTES,
-        id="check_decisions",
-        replace_existing=True,
-        max_instances=1,
-        coalesce=True,
-    )
-    scheduler.add_job(
-        check_review_modifications_all,
-        "interval",
-        minutes=_SCHEDULER_TICK_MINUTES,
-        id="check_review_modifications",
+        id="check_papers",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
