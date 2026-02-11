@@ -17,7 +17,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,7 +44,11 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   }
 
   return (
-    <Card className="w-full max-w-md border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur">
+    <Card
+      className={`mx-auto w-[min(94vw,32rem)] border border-white/60 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur ${
+        locale === 'zh' ? 'sm:w-[min(92vw,38rem)]' : ''
+      }`}
+    >
       <CardHeader className="space-y-2 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <Lock className="h-6 w-6 text-primary" />
