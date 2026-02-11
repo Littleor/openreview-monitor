@@ -47,6 +47,7 @@ class Settings(BaseSettings):
 
     # Check interval (minutes)
     check_interval: int = 30
+    review_mod_check_interval: int = 10
 
     # Email verification
     email_verification_ttl_minutes: int = 10

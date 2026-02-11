@@ -124,57 +124,108 @@ class OpenReviewService:
                 return True
         return False
 
+    def _get_forum_notes(self, paper_id: str, suppress_errors: bool = True) -> List[Any]:
+        """Fetch all forum notes once for downstream parsing."""
+        try:
+            return self.client.get_notes(forum=paper_id)
+        except Exception as e:
+            logger.error(f"Error fetching notes for {paper_id}: {e}")
+            if not suppress_errors:
+                raise
+            return []
+
+    def _extract_reviews_from_notes(self, notes: List[Any], paper_id: str) -> List[Dict[str, Any]]:
+        """Extract review entries from forum notes."""
+        reviews: List[Dict[str, Any]] = []
+        for note in notes:
+            invitations = self._get_invitations(note)
+            if not self._is_review(invitations):
+                continue
+
+            content = note.content if hasattr(note, 'content') else {}
+            review_data = {
+                "id": note.id,
+                "rating": None,
+                "confidence": None,
+                "summary": None,
+                "strengths": None,
+                "weaknesses": None,
+                "soundness": None,
+                "presentation": None,
+                "contribution": None,
+                "mdate": note.mdate if hasattr(note, 'mdate') else None,
+            }
+
+            if isinstance(content, dict):
+                for key in ["rating", "recommendation", "score"]:
+                    val = self._get_content_value(content, key)
+                    if val is not None:
+                        review_data["rating"] = val
+                        break
+
+                review_data["confidence"] = self._get_content_value(content, "confidence")
+                review_data["soundness"] = self._get_content_value(content, "soundness")
+                review_data["presentation"] = self._get_content_value(content, "presentation")
+                review_data["contribution"] = self._get_content_value(content, "contribution")
+                review_data["summary"] = self._get_content_value(content, "summary")
+                review_data["strengths"] = self._get_content_value(content, "strengths")
+                review_data["weaknesses"] = self._get_content_value(content, "weaknesses")
+
+            reviews.append(review_data)
+
+        logger.info(f"Found {len(reviews)} reviews for paper {paper_id}")
+        return reviews
+
+    def _extract_decision_from_notes(self, notes: List[Any], paper_id: str) -> Optional[Dict[str, Any]]:
+        """Extract latest decision entry from forum notes."""
+        latest_decision: Optional[Dict[str, Any]] = None
+        latest_mdate = -1
+
+        for note in notes:
+            invitations = self._get_invitations(note)
+            if not self._is_decision(invitations):
+                continue
+
+            content = note.content if hasattr(note, 'content') else {}
+            decision_data = {
+                "decision": None,
+                "comment": None,
+            }
+
+            if isinstance(content, dict):
+                decision_data["decision"] = self._get_content_value(content, "decision")
+                if not decision_data["decision"]:
+                    decision_data["decision"] = self._get_content_value(content, "recommendation")
+
+                for key in ["comment", "metareview", "meta_review", "explanation"]:
+                    val = self._get_content_value(content, key)
+                    if val:
+                        decision_data["comment"] = val
+                        break
+
+            if not decision_data["decision"]:
+                continue
+
+            raw_mdate = getattr(note, "mdate", None)
+            try:
+                mdate = int(raw_mdate) if raw_mdate is not None else -1
+            except (TypeError, ValueError):
+                mdate = -1
+            decision_data["mdate"] = mdate if mdate >= 0 else None
+
+            if mdate >= latest_mdate:
+                latest_mdate = mdate
+                latest_decision = decision_data
+
+        if latest_decision:
+            logger.info(f"Found decision for paper {paper_id}: {latest_decision['decision']}")
+        return latest_decision
+
     def get_reviews(self, paper_id: str, suppress_errors: bool = True) -> List[Dict[str, Any]]:
         """Get review information for a paper."""
         try:
-            notes = self.client.get_notes(forum=paper_id)
-
-            reviews = []
-            for note in notes:
-                invitations = self._get_invitations(note)
-
-                if not self._is_review(invitations):
-                    continue
-
-                content = note.content if hasattr(note, 'content') else {}
-
-                review_data = {
-                    "id": note.id,
-                    "rating": None,
-                    "confidence": None,
-                    "summary": None,
-                    "strengths": None,
-                    "weaknesses": None,
-                    "soundness": None,
-                    "presentation": None,
-                    "contribution": None,
-                    "mdate": note.mdate if hasattr(note, 'mdate') else None,
-                }
-
-                if isinstance(content, dict):
-                    # Get rating - try multiple field names
-                    for key in ["rating", "recommendation", "score"]:
-                        val = self._get_content_value(content, key)
-                        if val is not None:
-                            review_data["rating"] = val
-                            break
-
-                    # Get other fields
-                    review_data["confidence"] = self._get_content_value(content, "confidence")
-                    review_data["soundness"] = self._get_content_value(content, "soundness")
-                    review_data["presentation"] = self._get_content_value(content, "presentation")
-                    review_data["contribution"] = self._get_content_value(content, "contribution")
-
-                    # Get text fields
-                    review_data["summary"] = self._get_content_value(content, "summary")
-                    review_data["strengths"] = self._get_content_value(content, "strengths")
-                    review_data["weaknesses"] = self._get_content_value(content, "weaknesses")
-
-                reviews.append(review_data)
-
-            logger.info(f"Found {len(reviews)} reviews for paper {paper_id}")
-            return reviews
-
+            notes = self._get_forum_notes(paper_id, suppress_errors=suppress_errors)
+            return self._extract_reviews_from_notes(notes, paper_id)
         except Exception as e:
             logger.error(f"Error fetching reviews for {paper_id}: {e}")
             if not suppress_errors:
@@ -184,42 +235,8 @@ class OpenReviewService:
     def get_decision(self, paper_id: str, suppress_errors: bool = True) -> Optional[Dict[str, Any]]:
         """Get the final decision for a paper."""
         try:
-            notes = self.client.get_notes(forum=paper_id)
-
-            for note in notes:
-                invitations = self._get_invitations(note)
-
-                if not self._is_decision(invitations):
-                    continue
-
-                content = note.content if hasattr(note, 'content') else {}
-
-                decision_data = {
-                    "decision": None,
-                    "comment": None,
-                }
-
-                if isinstance(content, dict):
-                    # Get decision
-                    decision_data["decision"] = self._get_content_value(content, "decision")
-                    if not decision_data["decision"]:
-                        decision_data["decision"] = self._get_content_value(content, "recommendation")
-
-                    # Get comment
-                    for key in ["comment", "metareview", "meta_review", "explanation"]:
-                        val = self._get_content_value(content, key)
-                        if val:
-                            decision_data["comment"] = val
-                            break
-
-                if decision_data["decision"]:
-                    if hasattr(note, 'mdate'):
-                        decision_data["mdate"] = note.mdate
-                    logger.info(f"Found decision for paper {paper_id}: {decision_data['decision']}")
-                    return decision_data
-
-            return None
-
+            notes = self._get_forum_notes(paper_id, suppress_errors=suppress_errors)
+            return self._extract_decision_from_notes(notes, paper_id)
         except Exception as e:
             logger.error(f"Error fetching decision for {paper_id}: {e}")
             if not suppress_errors:
@@ -228,8 +245,9 @@ class OpenReviewService:
 
     def check_paper_status(self, paper_id: str, suppress_errors: bool = True) -> Dict[str, Any]:
         """Check the complete status of a paper."""
-        reviews = self.get_reviews(paper_id, suppress_errors=suppress_errors)
-        decision = self.get_decision(paper_id, suppress_errors=suppress_errors)
+        notes = self._get_forum_notes(paper_id, suppress_errors=suppress_errors)
+        reviews = self._extract_reviews_from_notes(notes, paper_id)
+        decision = self._extract_decision_from_notes(notes, paper_id)
 
         status = "pending"
         if decision:

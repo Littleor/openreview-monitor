@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -98,7 +98,8 @@ class TokenResponse(BaseModel):
 
 # Config schemas
 class ConfigUpdate(BaseModel):
-    check_interval: Optional[int] = None
+    check_interval: Optional[int] = Field(default=None, ge=1)
+    review_mod_check_interval: Optional[int] = Field(default=None, ge=1)
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = None
     smtp_user: Optional[str] = None
@@ -109,6 +110,7 @@ class ConfigUpdate(BaseModel):
 
 class ConfigResponse(BaseModel):
     check_interval: int
+    review_mod_check_interval: int
     smtp_host: str
     smtp_port: int
     smtp_user: str

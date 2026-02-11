@@ -18,6 +18,8 @@ class Paper(Base):
     openreview_password = Column(String(255), nullable=True)
     status = Column(String(50), default="pending")  # pending, reviewed, accepted, rejected
     last_checked = Column(DateTime, nullable=True)
+    last_decision_checked = Column(DateTime, nullable=True)
+    last_review_mod_checked = Column(DateTime, nullable=True)
     review_data = Column(JSON, nullable=True)  # Cached review data
     decision_data = Column(JSON, nullable=True)  # Cached decision data
     created_at = Column(DateTime, default=datetime.utcnow)

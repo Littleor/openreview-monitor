@@ -30,6 +30,7 @@ def init_db():
     """Initialize database tables."""
     Base.metadata.create_all(bind=engine)
     ensure_subscriber_columns()
+    ensure_paper_columns()
     ensure_encrypted_secrets()
 
 
@@ -49,6 +50,35 @@ def ensure_subscriber_columns():
             conn.execute(text(
                 "UPDATE subscribers SET notify_on_review_modified = 1 "
                 "WHERE notify_on_review_modified IS NULL"
+            ))
+
+
+def ensure_paper_columns():
+    """Lightweight migration for scheduler timestamp columns."""
+    inspector = inspect(engine)
+    if "papers" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("papers")}
+    with engine.begin() as conn:
+        if "last_decision_checked" not in columns:
+            conn.execute(text(
+                "ALTER TABLE papers "
+                "ADD COLUMN last_decision_checked DATETIME"
+            ))
+            conn.execute(text(
+                "UPDATE papers SET last_decision_checked = last_checked "
+                "WHERE last_decision_checked IS NULL"
+            ))
+
+        if "last_review_mod_checked" not in columns:
+            conn.execute(text(
+                "ALTER TABLE papers "
+                "ADD COLUMN last_review_mod_checked DATETIME"
+            ))
+            conn.execute(text(
+                "UPDATE papers SET last_review_mod_checked = last_checked "
+                "WHERE last_review_mod_checked IS NULL"
             ))
 
 

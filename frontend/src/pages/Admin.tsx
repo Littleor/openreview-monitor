@@ -47,6 +47,7 @@ export default function Admin() {
     if (configResult.data) {
       setConfigForm({
         check_interval: configResult.data.check_interval,
+        review_mod_check_interval: configResult.data.review_mod_check_interval,
         smtp_host: configResult.data.smtp_host,
         smtp_port: configResult.data.smtp_port,
         smtp_user: configResult.data.smtp_user,
@@ -362,6 +363,27 @@ export default function Admin() {
                         />
                         <p className="text-xs text-muted-foreground">
                           {t('admin.config.checkInterval.help')}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="review_mod_check_interval">
+                          {t('admin.config.reviewModInterval.label')}
+                        </Label>
+                        <Input
+                          id="review_mod_check_interval"
+                          type="number"
+                          min="1"
+                          value={configForm.review_mod_check_interval || ''}
+                          onChange={(e) =>
+                            setConfigForm({
+                              ...configForm,
+                              review_mod_check_interval: parseInt(e.target.value),
+                            })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t('admin.config.reviewModInterval.help')}
                         </p>
                       </div>
 

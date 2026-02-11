@@ -1,8 +1,10 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
+from threading import Lock
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import logging
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 
 from ..database import SessionLocal
 from ..models import Paper, Subscriber, Config
@@ -14,6 +16,8 @@ from ..utils.crypto import decrypt_value
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
+_scheduler_run_lock = Lock()
+_SCHEDULER_TICK_MINUTES = 1
 
 
 def get_email_service() -> EmailService:
@@ -24,7 +28,7 @@ def get_email_service() -> EmailService:
     try:
         def get_config_value(key: str, default: str) -> str:
             config = db.query(Config).filter(Config.key == key).first()
-            return config.value if config else default
+            return config.value if config and config.value is not None else default
 
         from_name = get_config_value("from_name", settings.from_name)
         from_name = from_name.strip() if from_name else ""
@@ -43,225 +47,529 @@ def get_email_service() -> EmailService:
         db.close()
 
 
-def check_all_papers():
-    """
-    Check all papers using smart venue-based logic:
-    - Group papers by venue
-    - For each venue, sort by submission_number and check top 5 first
-    - If none of the top 5 have decisions, skip the rest (same venue releases together)
-    - If any has decision, continue checking the rest
-    """
-    logger.info("Starting smart paper check...")
-    db = SessionLocal()
-
+def _get_int_config(db, key: str, default: int) -> int:
+    config = db.query(Config).filter(Config.key == key).first()
+    if not config or config.value is None:
+        return max(1, default)
     try:
-        # Get all papers that still need monitoring.
-        # Include empty/null status as a safety net for historical bad data.
-        papers = db.query(Paper).filter(
-            or_(
-                Paper.status.in_(["pending", "reviewed"]),
-                Paper.status.is_(None),
-                Paper.status == "",
-            )
-        ).all()
-
-        logger.info(f"Found {len(papers)} papers to check")
-
-        # Group papers by venue
-        venue_papers = defaultdict(list)
-        for paper in papers:
-            venue = paper.venue or "unknown"
-            venue_papers[venue].append(paper)
-
-        email_service = get_email_service()
-
-        # Process each venue
-        for venue, venue_paper_list in venue_papers.items():
-            # Sort by submission_number (papers without number go to the end)
-            venue_paper_list.sort(key=lambda p: (
-                p.submission_number is None,  # None values go last
-                p.submission_number or 0
-            ))
-
-            logger.info(f"Checking venue: {venue} ({len(venue_paper_list)} papers)")
-            if venue_paper_list:
-                submission_nums = [p.submission_number for p in venue_paper_list[:5]]
-                logger.info(f"Top 5 submission numbers: {submission_nums}")
-
-            # Check top 5 papers first (by submission number)
-            top_papers = venue_paper_list[:5]
-            remaining_papers = venue_paper_list[5:]
-
-            any_decision_found = False
-
-            # Check top 5
-            for paper in top_papers:
-                has_decision = check_single_paper(db, paper, email_service)
-                if has_decision:
-                    any_decision_found = True
-
-            # If any decision found in top 5, check remaining papers
-            if any_decision_found and remaining_papers:
-                logger.info(f"Decision found in {venue}, checking remaining {len(remaining_papers)} papers")
-                for paper in remaining_papers:
-                    check_single_paper(db, paper, email_service)
-            elif not any_decision_found and remaining_papers:
-                logger.info(f"No decisions in top 5 for {venue}, skipping remaining {len(remaining_papers)} papers")
-
-        db.commit()
-
-    except Exception as e:
-        logger.error(f"Error in check_all_papers: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
-    logger.info("Paper check completed")
+        return max(1, int(config.value))
+    except (TypeError, ValueError):
+        logger.warning("Invalid integer config for %s=%s, using default=%s", key, config.value, default)
+        return max(1, default)
 
 
-def check_single_paper(db, paper: Paper, email_service: EmailService) -> bool:
-    """
-    Check a single paper and send notifications if needed.
-    Returns True if a decision was found.
-    """
-    try:
-        logger.info(f"Checking paper: {paper.openreview_id} (Submission #{paper.submission_number})")
+def _get_runtime_intervals(db) -> Tuple[int, int]:
+    settings = get_settings()
+    decision_interval = _get_int_config(db, "check_interval", settings.check_interval)
+    review_mod_interval = _get_int_config(
+        db,
+        "review_mod_check_interval",
+        settings.review_mod_check_interval
+    )
+    return decision_interval, review_mod_interval
 
-        # Create service with credentials if available
-        service = OpenReviewService(
-            username=decrypt_value(paper.openreview_username),
-            password=decrypt_value(paper.openreview_password)
-        )
 
-        # Get current status from OpenReview
-        status_info = service.check_paper_status(
-            paper.openreview_id,
-            suppress_errors=False
-        )
-        new_status = status_info["status"]
-        reviews = status_info.get("reviews", [])
-        decision = status_info.get("decision")
-        has_decision = status_info.get("has_decision", False)
-        previous_status = paper.status or ""
+def _is_due(last_checked: Optional[datetime], interval_minutes: int, now: datetime) -> bool:
+    if last_checked is None:
+        return True
+    return now - last_checked >= timedelta(minutes=interval_minutes)
 
-        # Check for modified reviews
-        stored_reviews_data = paper.review_data or {}
-        stored_reviews = stored_reviews_data.get("reviews", [])
-        stored_reviews_map = {r["id"]: r for r in stored_reviews}
-        
-        modified_reviews = []
-        for review in reviews:
-            rid = review["id"]
-            if rid in stored_reviews_map:
-                stored_review = stored_reviews_map[rid]
-                stored_mdate = stored_review.get("mdate")
-                new_mdate = review.get("mdate")
-                
-                # Check for modification (both must have mdate, and they must differ)
-                if stored_mdate and new_mdate and stored_mdate != new_mdate:
-                    logger.info(f"Detected modification for review {rid}: {stored_mdate} -> {new_mdate}")
-                    modified_reviews.append(review)
 
-        if modified_reviews:
-            # Notify subscribers about modifications
-            subscribers = db.query(Subscriber).filter(
-                Subscriber.paper_id == paper.id,
-                Subscriber.notify_on_review_modified == True
-            ).all()
+def _extract_reviews_from_cache(paper: Paper) -> List[Dict[str, Any]]:
+    stored_reviews_data = paper.review_data or {}
+    reviews = stored_reviews_data.get("reviews", [])
+    if not isinstance(reviews, list):
+        return []
+    return [r for r in reviews if isinstance(r, dict)]
 
-            for sub in subscribers:
-                # Use a specific flag or logic to avoid spamming? 
-                # For now, we notify on every detected change cycle.
-                email_service.send_review_modified_notification(
-                    to_email=sub.email,
-                    paper_title=paper.title,
-                    paper_id=paper.openreview_id,
-                    venue=paper.venue,
-                    modified_reviews=modified_reviews,
-                )
 
-        # Update paper info
-        paper.last_checked = datetime.utcnow()
-        paper.review_data = {"reviews": reviews, "review_count": len(reviews)}
+def _build_review_map(reviews: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    review_map: Dict[str, Dict[str, Any]] = {}
+    for review in reviews:
+        rid = review.get("id")
+        if rid:
+            review_map[rid] = review
+    return review_map
 
+
+def _detect_modified_reviews(
+    stored_reviews: List[Dict[str, Any]],
+    reviews: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    stored_reviews_map = _build_review_map(stored_reviews)
+    modified_reviews: List[Dict[str, Any]] = []
+
+    for review in reviews:
+        rid = review.get("id")
+        if not rid or rid not in stored_reviews_map:
+            continue
+
+        stored_review = stored_reviews_map[rid]
+        stored_mdate = stored_review.get("mdate")
+        new_mdate = review.get("mdate")
+
+        # Modification detection is based on mdate change for the same review id.
+        if stored_mdate and new_mdate and stored_mdate != new_mdate:
+            logger.info("Detected modification for review %s: %s -> %s", rid, stored_mdate, new_mdate)
+            modified_reviews.append(review)
+
+    return modified_reviews
+
+
+def _build_cached_status_info(paper: Paper) -> Dict[str, Any]:
+    reviews = _extract_reviews_from_cache(paper)
+    decision = paper.decision_data if isinstance(paper.decision_data, dict) else None
+    status = paper.status or ""
+    if not status:
         if decision:
-            paper.decision_data = decision
+            status = "decided"
+        elif reviews:
+            status = "reviewed"
+        else:
+            status = "pending"
 
-        # Check for new reviews (not yet notified)
-        if reviews and previous_status == "pending":
-            # Get subscribers who want review notifications and haven't been notified
-            subscribers = db.query(Subscriber).filter(
-                Subscriber.paper_id == paper.id,
-                Subscriber.notify_on_review == True,
-                Subscriber.notified_review == False
-            ).all()
+    return {
+        "status": status,
+        "reviews": reviews,
+        "decision": decision,
+        "review_count": len(reviews),
+        "has_decision": decision is not None,
+    }
 
-            for sub in subscribers:
-                success = email_service.send_review_notification(
-                    to_email=sub.email,
-                    paper_title=paper.title,
-                    paper_id=paper.openreview_id,
-                    venue=paper.venue,
-                    reviews=reviews,
-                )
-                if success:
-                    sub.notified_review = True
-                    logger.info(f"Notified {sub.email} about reviews for {paper.openreview_id}")
 
-        # Check for decision (not yet notified) - this is the key notification
-        if has_decision and decision:
-            # Get subscribers who want decision notifications and haven't been notified
-            subscribers = db.query(Subscriber).filter(
-                Subscriber.paper_id == paper.id,
-                Subscriber.notify_on_decision == True,
-                Subscriber.notified_decision == False
-            ).all()
+def _send_review_modified_notifications(
+    db,
+    paper: Paper,
+    email_service: EmailService,
+    modified_reviews: List[Dict[str, Any]],
+) -> None:
+    if not modified_reviews:
+        return
 
-            for sub in subscribers:
-                success = email_service.send_decision_notification(
-                    to_email=sub.email,
-                    paper_title=paper.title,
-                    paper_id=paper.openreview_id,
-                    venue=paper.venue,
-                    decision=decision.get("decision", "Unknown"),
-                    comment=decision.get("comment"),
-                    reviews=reviews,
-                )
-                if success:
-                    sub.notified_decision = True
-                    logger.info(f"Notified {sub.email} about decision for {paper.openreview_id}")
+    subscribers = db.query(Subscriber).filter(
+        Subscriber.paper_id == paper.id,
+        Subscriber.notify_on_review_modified == True
+    ).all()
 
-        # Keep database status aligned with current OpenReview status.
-        paper.status = new_status
+    for sub in subscribers:
+        email_service.send_review_modified_notification(
+            to_email=sub.email,
+            paper_title=paper.title,
+            paper_id=paper.openreview_id,
+            venue=paper.venue,
+            modified_reviews=modified_reviews,
+        )
+
+
+def _send_review_notifications(
+    db,
+    paper: Paper,
+    email_service: EmailService,
+    reviews: List[Dict[str, Any]],
+) -> None:
+    if not reviews:
+        return
+
+    subscribers = db.query(Subscriber).filter(
+        Subscriber.paper_id == paper.id,
+        Subscriber.notify_on_review == True,
+        Subscriber.notified_review == False
+    ).all()
+
+    for sub in subscribers:
+        success = email_service.send_review_notification(
+            to_email=sub.email,
+            paper_title=paper.title,
+            paper_id=paper.openreview_id,
+            venue=paper.venue,
+            reviews=reviews,
+        )
+        if success:
+            sub.notified_review = True
+            logger.info("Notified %s about reviews for %s", sub.email, paper.openreview_id)
+
+
+def _send_decision_notifications(
+    db,
+    paper: Paper,
+    email_service: EmailService,
+    decision: Dict[str, Any],
+    reviews: List[Dict[str, Any]],
+) -> None:
+    if not decision:
+        return
+
+    subscribers = db.query(Subscriber).filter(
+        Subscriber.paper_id == paper.id,
+        Subscriber.notify_on_decision == True,
+        Subscriber.notified_decision == False
+    ).all()
+
+    for sub in subscribers:
+        success = email_service.send_decision_notification(
+            to_email=sub.email,
+            paper_title=paper.title,
+            paper_id=paper.openreview_id,
+            venue=paper.venue,
+            decision=decision.get("decision", "Unknown"),
+            comment=decision.get("comment"),
+            reviews=reviews,
+        )
+        if success:
+            sub.notified_decision = True
+            logger.info("Notified %s about decision for %s", sub.email, paper.openreview_id)
+
+
+def _check_single_paper(
+    db,
+    paper: Paper,
+    email_service: EmailService,
+    now: datetime,
+    decision_interval_minutes: int,
+    review_mod_interval_minutes: int,
+    run_decision_checks: bool,
+    run_review_mod_checks: bool,
+    force: bool = False,
+) -> bool:
+    """
+    Check a single paper according to enabled check types.
+    Returns True if a decision exists in the evaluated snapshot.
+    """
+    try:
+        should_run_decision = run_decision_checks and (
+            force or _is_due(paper.last_decision_checked, decision_interval_minutes, now)
+        )
+        should_run_review_mod = run_review_mod_checks and (
+            force or _is_due(paper.last_review_mod_checked, review_mod_interval_minutes, now)
+        )
+
+        if not should_run_decision and not should_run_review_mod:
+            return bool(paper.decision_data) or (paper.status in {"accepted", "rejected", "decided"})
+
+        shared_interval_minutes = max(1, min(decision_interval_minutes, review_mod_interval_minutes))
+        use_cached_snapshot = (
+            not force
+            and paper.last_checked is not None
+            and (now - paper.last_checked) < timedelta(minutes=shared_interval_minutes)
+        )
+
+        status_info: Dict[str, Any]
+        fetched_from_openreview = False
+
+        if use_cached_snapshot:
+            status_info = _build_cached_status_info(paper)
+            logger.info(
+                "Using cached status for paper %s (last_checked=%s)",
+                paper.openreview_id,
+                paper.last_checked,
+            )
+        else:
+            logger.info("Checking paper: %s (Submission #%s)", paper.openreview_id, paper.submission_number)
+            stored_reviews = _extract_reviews_from_cache(paper)
+
+            service = OpenReviewService(
+                username=decrypt_value(paper.openreview_username),
+                password=decrypt_value(paper.openreview_password)
+            )
+            status_info = service.check_paper_status(
+                paper.openreview_id,
+                suppress_errors=False
+            )
+            fetched_from_openreview = True
+
+            reviews = status_info.get("reviews", [])
+            if not isinstance(reviews, list):
+                reviews = []
+            decision = status_info.get("decision")
+            if not isinstance(decision, dict):
+                decision = None
+
+            modified_reviews = _detect_modified_reviews(stored_reviews, reviews)
+            _send_review_modified_notifications(db, paper, email_service, modified_reviews)
+
+            paper.last_checked = now
+            paper.review_data = {"reviews": reviews, "review_count": len(reviews)}
+            if decision:
+                paper.decision_data = decision
+            paper.status = status_info.get("status", paper.status or "pending")
+
+        reviews = status_info.get("reviews", [])
+        if not isinstance(reviews, list):
+            reviews = []
+        decision = status_info.get("decision")
+        if not isinstance(decision, dict):
+            decision = None
+        has_decision = bool(status_info.get("has_decision", False) and decision)
+
+        if should_run_decision:
+            _send_review_notifications(db, paper, email_service, reviews)
+            if has_decision:
+                _send_decision_notifications(db, paper, email_service, decision, reviews)
+            paper.last_decision_checked = now
+
+        if should_run_review_mod:
+            paper.last_review_mod_checked = now
+
+        if fetched_from_openreview:
+            logger.info("Paper %s updated: status=%s", paper.openreview_id, paper.status)
 
         db.flush()
-        logger.info(f"Paper {paper.openreview_id} updated: status={paper.status}")
-
         return has_decision
 
     except Exception as e:
-        logger.error(f"Error checking paper {paper.openreview_id}: {e}")
+        logger.error("Error checking paper %s: %s", paper.openreview_id, e)
         return False
 
 
+def _check_decisions_smart_impl(
+    db,
+    email_service: EmailService,
+    now: datetime,
+    decision_interval_minutes: int,
+    review_mod_interval_minutes: int,
+    force: bool = False,
+) -> None:
+    """
+    Decision/review availability checker with venue optimization:
+    - Group papers by venue
+    - For each venue, sort by submission_number and check top 5 first
+    - If none of the top 5 have decisions, skip the rest
+    - If any has decision, continue checking the rest
+    """
+    notification_pending_ids = db.query(Paper.id).join(
+        Subscriber, Subscriber.paper_id == Paper.id
+    ).filter(
+        or_(
+            and_(
+                Subscriber.notify_on_review == True,
+                Subscriber.notified_review == False,
+            ),
+            and_(
+                Subscriber.notify_on_decision == True,
+                Subscriber.notified_decision == False,
+            ),
+        )
+    ).distinct().subquery()
+
+    papers = db.query(Paper).filter(
+        or_(
+            Paper.status.in_(["pending", "reviewed"]),
+            Paper.status.is_(None),
+            Paper.status == "",
+            Paper.id.in_(notification_pending_ids.select()),
+        )
+    ).all()
+
+    logger.info("Decision check: found %d papers to evaluate", len(papers))
+
+    venue_papers = defaultdict(list)
+    for paper in papers:
+        venue = paper.venue or "unknown"
+        venue_papers[venue].append(paper)
+
+    for venue, venue_paper_list in venue_papers.items():
+        venue_paper_list.sort(key=lambda p: (
+            p.submission_number is None,
+            p.submission_number or 0
+        ))
+
+        logger.info("Decision check venue: %s (%d papers)", venue, len(venue_paper_list))
+        top_papers = venue_paper_list[:5]
+        remaining_papers = venue_paper_list[5:]
+
+        any_decision_found = False
+        for paper in top_papers:
+            has_decision = _check_single_paper(
+                db=db,
+                paper=paper,
+                email_service=email_service,
+                now=now,
+                decision_interval_minutes=decision_interval_minutes,
+                review_mod_interval_minutes=review_mod_interval_minutes,
+                run_decision_checks=True,
+                run_review_mod_checks=False,
+                force=force,
+            )
+            if has_decision:
+                any_decision_found = True
+
+        if (any_decision_found or force) and remaining_papers:
+            logger.info(
+                "Decision check: continuing venue %s for remaining %d papers",
+                venue,
+                len(remaining_papers),
+            )
+            for paper in remaining_papers:
+                _check_single_paper(
+                    db=db,
+                    paper=paper,
+                    email_service=email_service,
+                    now=now,
+                    decision_interval_minutes=decision_interval_minutes,
+                    review_mod_interval_minutes=review_mod_interval_minutes,
+                    run_decision_checks=True,
+                    run_review_mod_checks=False,
+                    force=force,
+                )
+        elif remaining_papers:
+            logger.info(
+                "Decision check: no decisions in top 5 for %s, skipping remaining %d papers",
+                venue,
+                len(remaining_papers),
+            )
+
+
+def _check_review_modifications_all_impl(
+    db,
+    email_service: EmailService,
+    now: datetime,
+    decision_interval_minutes: int,
+    review_mod_interval_minutes: int,
+    force: bool = False,
+) -> None:
+    """
+    Full review-modification monitor:
+    - Targets papers that have at least one subscriber with review-mod notifications enabled
+    - Applies full status sync and modified review detection
+    """
+    papers = db.query(Paper).join(
+        Subscriber, Subscriber.paper_id == Paper.id
+    ).filter(
+        Subscriber.notify_on_review_modified == True
+    ).distinct().all()
+
+    papers.sort(key=lambda p: (
+        p.venue or "",
+        p.submission_number is None,
+        p.submission_number or 0,
+        p.id,
+    ))
+
+    logger.info("Review-mod check: found %d papers to evaluate", len(papers))
+
+    for paper in papers:
+        _check_single_paper(
+            db=db,
+            paper=paper,
+            email_service=email_service,
+            now=now,
+            decision_interval_minutes=decision_interval_minutes,
+            review_mod_interval_minutes=review_mod_interval_minutes,
+            run_decision_checks=False,
+            run_review_mod_checks=True,
+            force=force,
+        )
+
+
+def _run_check_job(
+    job_name: str,
+    runner: Callable[[Any, EmailService, datetime, int, int, bool], None],
+    force: bool = False,
+) -> None:
+    if not _scheduler_run_lock.acquire(blocking=False):
+        logger.info("Skipping %s because another check job is already running", job_name)
+        return
+
+    db = SessionLocal()
+    try:
+        decision_interval, review_mod_interval = _get_runtime_intervals(db)
+        email_service = get_email_service()
+        now = datetime.utcnow()
+        logger.info(
+            "Starting %s (decision_interval=%sm, review_mod_interval=%sm, force=%s)",
+            job_name,
+            decision_interval,
+            review_mod_interval,
+            force,
+        )
+        runner(
+            db,
+            email_service,
+            now,
+            decision_interval,
+            review_mod_interval,
+            force,
+        )
+        db.commit()
+    except Exception as e:
+        logger.error("Error in %s: %s", job_name, e)
+        db.rollback()
+    finally:
+        db.close()
+        _scheduler_run_lock.release()
+        logger.info("%s completed", job_name)
+
+
+def check_decisions_smart(force: bool = False):
+    """Check decision/review availability with venue-based top-5 optimization."""
+    _run_check_job("check_decisions_smart", _check_decisions_smart_impl, force=force)
+
+
+def check_review_modifications_all(force: bool = False):
+    """Check review modifications for all papers that enabled review-mod notifications."""
+    _run_check_job(
+        "check_review_modifications_all",
+        _check_review_modifications_all_impl,
+        force=force,
+    )
+
+
+def check_all_papers(force: bool = False):
+    """Run both decision smart-check and review-modification full-check."""
+    def _run_both(db, email_service, now, decision_interval, review_mod_interval, run_force):
+        _check_decisions_smart_impl(
+            db=db,
+            email_service=email_service,
+            now=now,
+            decision_interval_minutes=decision_interval,
+            review_mod_interval_minutes=review_mod_interval,
+            force=run_force,
+        )
+        _check_review_modifications_all_impl(
+            db=db,
+            email_service=email_service,
+            now=now,
+            decision_interval_minutes=decision_interval,
+            review_mod_interval_minutes=review_mod_interval,
+            force=run_force,
+        )
+
+    _run_check_job("check_all_papers", _run_both, force=force)
+
+
 def start_scheduler(interval_minutes: int = 30):
-    """Start the scheduler with the given interval."""
-    # Remove existing job if any
-    if scheduler.get_job("check_papers"):
-        scheduler.remove_job("check_papers")
+    """Start scheduler with two dispatcher jobs and runtime-configurable intervals."""
+    for job_id in ["check_papers", "check_decisions", "check_review_modifications"]:
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)
 
     scheduler.add_job(
-        check_all_papers,
-        'interval',
-        minutes=interval_minutes,
-        id="check_papers",
-        replace_existing=True
+        check_decisions_smart,
+        "interval",
+        minutes=_SCHEDULER_TICK_MINUTES,
+        id="check_decisions",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        check_review_modifications_all,
+        "interval",
+        minutes=_SCHEDULER_TICK_MINUTES,
+        id="check_review_modifications",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
 
     if not scheduler.running:
         scheduler.start()
 
-    logger.info(f"Scheduler started with {interval_minutes} minute interval")
+    logger.info(
+        "Scheduler started with %d-minute dispatcher tick (initial decision default=%dm)",
+        _SCHEDULER_TICK_MINUTES,
+        interval_minutes,
+    )
 
 
 def stop_scheduler():

@@ -174,6 +174,9 @@ const translations = {
     'admin.config.title': 'System Configuration',
     'admin.config.checkInterval.label': 'Check Interval (minutes)',
     'admin.config.checkInterval.help': 'How often to check for paper updates',
+    'admin.config.reviewModInterval.label': 'Review Modify Check Interval (minutes)',
+    'admin.config.reviewModInterval.help':
+      'How often to check review modifications for subscribed papers',
     'admin.config.smtp.title': 'SMTP Configuration',
     'admin.config.smtp.host': 'SMTP Host',
     'admin.config.smtp.port': 'SMTP Port',
@@ -373,6 +376,8 @@ const translations = {
     'admin.config.title': '系统配置',
     'admin.config.checkInterval.label': '检查间隔（分钟）',
     'admin.config.checkInterval.help': '多久检查一次论文更新',
+    'admin.config.reviewModInterval.label': '评审修改检查间隔（分钟）',
+    'admin.config.reviewModInterval.help': '多久检查一次已订阅论文的评审修改',
     'admin.config.smtp.title': 'SMTP 配置',
     'admin.config.smtp.host': 'SMTP 主机',
     'admin.config.smtp.port': 'SMTP 端口',

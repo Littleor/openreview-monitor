@@ -120,6 +120,7 @@ export interface Subscriber {
 
 export interface Config {
   check_interval: number;
+  review_mod_check_interval: number;
   smtp_host: string;
   smtp_port: number;
   smtp_user: string;
@@ -129,6 +130,7 @@ export interface Config {
 
 export interface ConfigUpdate {
   check_interval?: number;
+  review_mod_check_interval?: number;
   smtp_host?: string;
   smtp_port?: number;
   smtp_user?: string;
