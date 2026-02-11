@@ -220,4 +220,9 @@ export const api = {
     fetchApi<{ message: string }>('/admin/check-now', {
       method: 'POST',
     }),
+
+  syncStatusSilent: () =>
+    fetchApi<{ message: string }>('/admin/sync-status-silent', {
+      method: 'POST',
+    }),
 };

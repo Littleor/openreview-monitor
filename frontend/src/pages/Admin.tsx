@@ -22,6 +22,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(false)
   const [testEmail, setTestEmail] = useState('')
   const [sendingTestEmail, setSendingTestEmail] = useState(false)
+  const [syncingSilent, setSyncingSilent] = useState(false)
   const [apiInfo, setApiInfo] = useState<{ mode: string; base: string } | null>(null)
   const { toast } = useToast()
   const { t } = useI18n()
@@ -143,6 +144,26 @@ export default function Admin() {
       })
     }
     setSendingTestEmail(false)
+  }
+
+  const handleSilentStatusSync = async () => {
+    if (!confirm(t('admin.silentSync.confirm'))) return
+
+    setSyncingSilent(true)
+    const result = await api.syncStatusSilent()
+    if (result.error) {
+      toast({
+        title: t('common.error'),
+        description: result.error,
+        variant: 'destructive',
+      })
+    } else {
+      toast({
+        title: t('common.success'),
+        description: t('admin.toast.silentSyncStarted'),
+      })
+    }
+    setSyncingSilent(false)
   }
 
   if (!isLoggedIn) {
@@ -526,6 +547,26 @@ export default function Admin() {
                       <p className="text-xs text-muted-foreground">
                         {t('admin.test.helper')}
                       </p>
+
+                      <div className="border-t pt-6">
+                        <h3 className="font-medium">{t('admin.silentSync.title')}</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {t('admin.silentSync.description')}
+                        </p>
+                        <Button
+                          onClick={handleSilentStatusSync}
+                          disabled={syncingSilent}
+                          className="mt-4 w-full"
+                          variant="secondary"
+                        >
+                          {syncingSilent && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          {t('admin.silentSync.start')}
+                        </Button>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {t('admin.silentSync.helper')}
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

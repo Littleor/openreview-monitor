@@ -171,6 +171,8 @@ const translations = {
     'admin.toast.configSaved': 'Configuration saved',
     'admin.toast.emailRequired': 'Please enter an email address',
     'admin.toast.testEmailSent': 'Test email sent to {email}',
+    'admin.toast.silentSyncStarted':
+      'Silent status sync started. Refresh the paper list in a few minutes.',
     'admin.config.title': 'System Configuration',
     'admin.config.checkInterval.label': 'Check Interval (minutes)',
     'admin.config.checkInterval.help': 'How often to check for paper updates',
@@ -197,6 +199,14 @@ const translations = {
     'admin.test.send': 'Send Test Email',
     'admin.test.helper':
       'Make sure to save your SMTP configuration before sending a test email.',
+    'admin.silentSync.title': 'Silent Status Sync',
+    'admin.silentSync.description':
+      'Force scan all papers and refresh status cache without sending emails.',
+    'admin.silentSync.confirm':
+      'Start a full silent status sync now? No notification emails will be sent.',
+    'admin.silentSync.start': 'Start Silent Sync',
+    'admin.silentSync.helper':
+      'Use this after upgrading logic or fixing historical status sync issues.',
     'paperList.loading': 'Loading papers...',
     'paperList.title': 'Monitored Papers',
     'paperList.refresh': 'Refresh',
@@ -376,6 +386,7 @@ const translations = {
     'admin.toast.configSaved': '配置已保存',
     'admin.toast.emailRequired': '请输入邮箱地址',
     'admin.toast.testEmailSent': '测试邮件已发送至 {email}',
+    'admin.toast.silentSyncStarted': '静默状态同步已启动，请几分钟后刷新论文列表查看结果。',
     'admin.config.title': '系统配置',
     'admin.config.checkInterval.label': '检查间隔（分钟）',
     'admin.config.checkInterval.help': '多久检查一次论文更新',
@@ -399,6 +410,11 @@ const translations = {
     'admin.test.placeholder': 'your@email.com',
     'admin.test.send': '发送测试邮件',
     'admin.test.helper': '请先保存 SMTP 配置，再发送测试邮件。',
+    'admin.silentSync.title': '静默状态同步',
+    'admin.silentSync.description': '强制扫描所有论文并刷新状态缓存，但不发送任何邮件通知。',
+    'admin.silentSync.confirm': '确定立即执行一次静默全量状态同步吗？不会发送通知邮件。',
+    'admin.silentSync.start': '开始静默同步',
+    'admin.silentSync.helper': '适用于升级逻辑后修复历史状态不同步问题。',
     'paperList.loading': '加载论文中...',
     'paperList.title': '监控中的论文',
     'paperList.refresh': '刷新',
