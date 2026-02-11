@@ -268,3 +268,15 @@ async def check_now(
     background_tasks.add_task(check_all_papers, True)
 
     return MessageResponse(message="Paper check initiated")
+
+
+@router.post("/sync-status-silent", response_model=MessageResponse)
+async def sync_status_silent(
+    background_tasks: BackgroundTasks,
+    _: bool = Depends(get_current_admin)
+):
+    """Trigger a full status sync without sending any notification emails."""
+    from ..services.scheduler import sync_all_papers_status_silent
+    background_tasks.add_task(sync_all_papers_status_silent, True)
+
+    return MessageResponse(message="Silent paper status sync initiated")

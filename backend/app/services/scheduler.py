@@ -238,6 +238,26 @@ def _send_decision_notifications(
             logger.info("Notified %s about decision for %s", sub.email, paper.openreview_id)
 
 
+def _mark_existing_notifications_as_sent(
+    db,
+    paper: Paper,
+    reviews: List[Dict[str, Any]],
+    decision: Optional[Dict[str, Any]],
+) -> None:
+    """Update subscriber flags so historical data will not trigger delayed notifications."""
+    has_reviews = bool(reviews)
+    has_decision = bool(decision)
+    if not has_reviews and not has_decision:
+        return
+
+    subscribers = db.query(Subscriber).filter(Subscriber.paper_id == paper.id).all()
+    for sub in subscribers:
+        if has_reviews and sub.notify_on_review and not sub.notified_review:
+            sub.notified_review = True
+        if has_decision and sub.notify_on_decision and not sub.notified_decision:
+            sub.notified_decision = True
+
+
 def _check_single_paper(
     db,
     paper: Paper,
@@ -248,6 +268,8 @@ def _check_single_paper(
     run_decision_checks: bool,
     run_review_mod_checks: bool,
     force: bool = False,
+    send_notifications: bool = True,
+    mark_existing_notifications_as_sent: bool = False,
 ) -> Tuple[bool, bool]:
     """
     Check a single paper according to enabled check types.
@@ -304,7 +326,8 @@ def _check_single_paper(
                 decision = None
 
             modified_reviews = _detect_modified_reviews(stored_reviews, reviews)
-            _send_review_modified_notifications(db, paper, email_service, modified_reviews)
+            if send_notifications:
+                _send_review_modified_notifications(db, paper, email_service, modified_reviews)
 
             paper.last_checked = now
             paper.review_data = {"reviews": reviews, "review_count": len(reviews)}
@@ -320,10 +343,14 @@ def _check_single_paper(
             decision = None
         has_decision = bool(status_info.get("has_decision", False) and decision)
 
+        if mark_existing_notifications_as_sent:
+            _mark_existing_notifications_as_sent(db, paper, reviews, decision)
+
         if should_run_decision:
-            _send_review_notifications(db, paper, email_service, reviews)
-            if has_decision:
-                _send_decision_notifications(db, paper, email_service, decision, reviews)
+            if send_notifications:
+                _send_review_notifications(db, paper, email_service, reviews)
+                if has_decision:
+                    _send_decision_notifications(db, paper, email_service, decision, reviews)
             paper.last_decision_checked = now
 
         if should_run_review_mod:
@@ -485,6 +512,43 @@ def _check_review_modifications_all_impl(
             time.sleep(review_mod_request_gap_seconds)
 
 
+def _sync_all_papers_status_silent_impl(
+    db,
+    email_service: EmailService,
+    now: datetime,
+    decision_interval_minutes: int,
+    review_mod_interval_minutes: int,
+    review_mod_request_gap_seconds: float,
+    force: bool = True,
+) -> None:
+    """
+    Full status synchronization without sending notifications.
+    - Scans all papers
+    - Refreshes status/review/decision cache
+    - Marks existing review/decision notifications as already handled
+    """
+    papers = db.query(Paper).order_by(Paper.id).all()
+    logger.info("Silent sync: found %d papers to evaluate", len(papers))
+
+    for idx, paper in enumerate(papers):
+        _, fetched_from_openreview = _check_single_paper(
+            db=db,
+            paper=paper,
+            email_service=email_service,
+            now=now,
+            decision_interval_minutes=decision_interval_minutes,
+            review_mod_interval_minutes=review_mod_interval_minutes,
+            run_decision_checks=True,
+            run_review_mod_checks=True,
+            force=force,
+            send_notifications=False,
+            mark_existing_notifications_as_sent=True,
+        )
+        has_more = idx < len(papers) - 1
+        if fetched_from_openreview and has_more and review_mod_request_gap_seconds > 0:
+            time.sleep(review_mod_request_gap_seconds)
+
+
 def _run_check_job(
     job_name: str,
     runner: Callable[[Any, EmailService, datetime, int, int, float, bool], None],
@@ -536,6 +600,15 @@ def check_review_modifications_all(force: bool = False):
     _run_check_job(
         "check_review_modifications_all",
         _check_review_modifications_all_impl,
+        force=force,
+    )
+
+
+def sync_all_papers_status_silent(force: bool = True):
+    """Run a one-time full status sync without sending any notifications."""
+    _run_check_job(
+        "sync_all_papers_status_silent",
+        _sync_all_papers_status_silent_impl,
         force=force,
     )
 
